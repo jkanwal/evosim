@@ -29,7 +29,7 @@ public class TestRun : MonoBehaviour
         //Spawn some random creatures
         for (var i = 0; i < creatureNum; ++i)
         {
-            Vector3 position = new Vector3(Random.Range(-15f, 15f), 0.5f, Random.Range(-15f, 15f));
+            Vector3 position = new Vector3(Random.Range(-15f, 15f), 2f, Random.Range(-15f, 15f));
             GameObject baby = Instantiate(CreaturePrefab, position, Quaternion.identity);
         }
     }

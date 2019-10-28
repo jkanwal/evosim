@@ -51,53 +51,24 @@ public class BehaviourTest : MonoBehaviour
     //What happens when you collide with an object?  
     void OnCollisionEnter(Collision collision)
     {
-        //If it's with the stinger, decommission it
-        if ((gameObject.CompareTag("StingTargeting") || gameObject.CompareTag("StingTargeting_G")) && !collision.gameObject.CompareTag("Walls"))
+        //If it's with the stinger, sting it
+        if (!collision.gameObject.CompareTag("Walls") && (gameObject.CompareTag("StingTargeting") || gameObject.CompareTag("StingTargeting_G")))
         {
-            if (collision.gameObject.CompareTag("Pick Up"))
-            {
-                collision.gameObject.GetComponent<Renderer>().material = stingerColour;
-                Destroy(collision.gameObject.GetComponent<Rotator>());
-            }
-            else
-            {
-                Renderer[] children;
-                children = collision.gameObject.GetComponentsInChildren<Renderer>();
-                foreach (Renderer rend in children)
-                {
-                    rend.material = stingerColour;
-                }
-            }
-            Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
-            rBody.isKinematic = true;
-            rBody.detectCollisions = false;
-            collision.gameObject.tag = "Inert";
-            Debug.Log("Destroyed " + collision.gameObject.ToString());
-            if (gameObject.CompareTag("StingTargeting_G")) {
-                gameObject.tag = "Grabbing";
-            }
-            else
-            {
-                gameObject.tag = "Creature";
-            }
-            
+            Sting(collision);
         }
+
         //If it's with the grabber, grab it
-        else if (gameObject.CompareTag("GrabTargeting") && !collision.gameObject.CompareTag("Walls"))
+        else if (!collision.gameObject.CompareTag("Walls") && gameObject.CompareTag("GrabTargeting"))
         {
-            Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
-            rBody.isKinematic = true;
-            rBody.detectCollisions = false;
-            collision.transform.SetParent(transform);
-            collision.transform.localPosition = offset;
-            collision.gameObject.tag = "Inert";
-            gameObject.tag = "Grabbing";
+            Grab(collision);
         }
-        else if (gameObject.CompareTag("StingTargeting_G") && collision.gameObject.CompareTag("Walls"))
+
+        //If you bump into a wall before you've hit your target, go back to random motion
+        else if (collision.gameObject.CompareTag("Walls") && gameObject.CompareTag("StingTargeting_G"))
         {
             gameObject.tag = "Grabbing";
         }
-        else if ((gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting")) && collision.gameObject.CompareTag("Walls"))
+        else if (collision.gameObject.CompareTag("Walls") && (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting")))
         {
             gameObject.tag = "Creature";
         }
@@ -170,7 +141,13 @@ public class BehaviourTest : MonoBehaviour
     //Function that defines grabbing behaviour
     void Grab(Collision collision)
     {
-
+        Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
+        rBody.isKinematic = true;
+        rBody.detectCollisions = false;
+        collision.gameObject.tag = "Inert";
+        collision.transform.SetParent(transform);
+        collision.transform.localPosition = offset;
+        gameObject.tag = "Grabbing";
     }
 
     //Function that defines stinging behaviour
@@ -178,23 +155,18 @@ public class BehaviourTest : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Pick Up"))
         {
-            collision.gameObject.GetComponent<Renderer>().material = stingerColour;
             Destroy(collision.gameObject.GetComponent<Rotator>());
         }
-        else
+        Renderer[] children;
+        children = collision.gameObject.GetComponentsInChildren<Renderer>();
+        foreach (Renderer rend in children)
         {
-            Renderer[] children;
-            children = collision.gameObject.GetComponentsInChildren<Renderer>();
-            foreach (Renderer rend in children)
-            {
-                rend.material = stingerColour;
-            }
+            rend.material = stingerColour;
         }
         Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
         rBody.isKinematic = true;
         rBody.detectCollisions = false;
         collision.gameObject.tag = "Inert";
-        Debug.Log("Destroyed " + collision.gameObject.ToString());
         if (gameObject.CompareTag("StingTargeting_G"))
         {
             gameObject.tag = "Grabbing";
@@ -203,6 +175,7 @@ public class BehaviourTest : MonoBehaviour
         {
             gameObject.tag = "Creature";
         }
+        Debug.Log("Destroyed " + collision.gameObject.ToString());
     }
 
 
