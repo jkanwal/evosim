@@ -236,7 +236,7 @@ MonoBehaviour:
   foodProb: 0.001
   minimumHeight: 2
   maximumHeight: 7
-  creatureNum: 4
+  creatureNum: 10
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0

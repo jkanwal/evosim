@@ -18,10 +18,16 @@ public class BehaviourTest : MonoBehaviour
     private float rotationRange;
 
     //Declare variables for raycasting & grabbing
-    private int layerMask = 1 << 8;
+    private int layerMask = 1 << 9;
     private RaycastHit hit;
     private Vector3 target;
     private Vector3 offset = new Vector3(0f, 2f, 0f);
+    private float releaseRate = 15f;
+    private float releaseTime;
+    private GameObject grabbee;
+
+    //keep track of my food points
+    public int points = 0;
 
 
 
@@ -44,8 +50,36 @@ public class BehaviourTest : MonoBehaviour
 
     void FixedUpdate()
     {
-        MotionController(); //defines all the different conditions for different types of motion
+        //if I'm grabbing food, digest it and get a point
+        if (grabbee != null && grabbee.CompareTag("Pick Up"))
+        {
+            if (Time.time > releaseTime)
+            {
+                Destroy(grabbee);
+                grabbee = null; //empty my grabbee variable
+                points += 1;   
+                //if I'm not already dead, reset my Grabbing tag
+                if (!gameObject.CompareTag("Inert"))
+                {
+                    gameObject.tag = "Creature"; 
+                }
+                /* (Commented out, so keeping hold of other creatures for now)
+                //if I'm grabbing a creature, release it
+                else
+                {
+                    grabbee.transform.parent = null;
+                    Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
+                    rBody.isKinematic = false;
+                    rBody.detectCollisions = true;
+                    grabbee.tag = "Creature";
+                }
+                gameObject.tag = "Creature"; //reset my Grabbing tag
+                grabbee = null; //empty my grabbee variable
+                */
+            }
+        }
 
+        MotionController(); //defines all the different conditions for different types of motion
     }
 
     //What happens when you collide with an object?  
@@ -100,7 +134,7 @@ public class BehaviourTest : MonoBehaviour
         //if I'm being grabbed by someone else, or if I'm dead, do nothing
         if (gameObject.CompareTag("Inert"))
         {
-            Rigidbody rBody = gameObject.GetComponent<Rigidbody>();
+            Rigidbody rBody = GetComponent<Rigidbody>();
             rBody.velocity = Vector3.zero;
             rBody.angularVelocity = Vector3.zero;
         }
@@ -141,12 +175,17 @@ public class BehaviourTest : MonoBehaviour
     //Function that defines grabbing behaviour
     void Grab(Collision collision)
     {
-        Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
+        grabbee = collision.gameObject;
+        if (!grabbee.CompareTag("Pick Up"))
+        {
+            grabbee.tag = "Inert";
+        }
+        Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
         rBody.isKinematic = true;
         rBody.detectCollisions = false;
-        collision.gameObject.tag = "Inert";
         collision.transform.SetParent(transform);
         collision.transform.localPosition = offset;
+        releaseTime = Time.time + releaseRate;
         gameObject.tag = "Grabbing";
     }
 
@@ -157,16 +196,17 @@ public class BehaviourTest : MonoBehaviour
         {
             Destroy(collision.gameObject.GetComponent<Rotator>());
         }
+        collision.gameObject.tag = "Inert";
+        collision.gameObject.layer = 8;
+        Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
+        rBody.isKinematic = true;
+        rBody.detectCollisions = false;
         Renderer[] children;
         children = collision.gameObject.GetComponentsInChildren<Renderer>();
         foreach (Renderer rend in children)
         {
             rend.material = stingerColour;
         }
-        Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
-        rBody.isKinematic = true;
-        rBody.detectCollisions = false;
-        collision.gameObject.tag = "Inert";
         if (gameObject.CompareTag("StingTargeting_G"))
         {
             gameObject.tag = "Grabbing";

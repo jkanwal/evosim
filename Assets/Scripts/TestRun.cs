@@ -16,7 +16,7 @@ public class TestRun : MonoBehaviour
     public float foodProb = 0.001f;
     public float minimumHeight = 2f;
     public float maximumHeight = 7f;
-    public int creatureNum = 4;
+    public int creatureNum = 10;
     //public float resetRate = 30f;
     //private float resetTime;
 
