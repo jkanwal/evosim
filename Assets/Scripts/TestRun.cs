@@ -13,10 +13,10 @@ public class TestRun : MonoBehaviour
 
     //Simulation parameters
     public int foodAmount = 20;
-    public float foodProb = 0.001f;
+    public float foodProb = 0.01f;
     public float minimumHeight = 2f;
     public float maximumHeight = 7f;
-    public int creatureNum = 10;
+    public int creatureNum = 15;
     //public float resetRate = 30f;
     //private float resetTime;
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class BehaviourTest : MonoBehaviour
 {
@@ -18,9 +19,13 @@ public class BehaviourTest : MonoBehaviour
     private float rotationRange;
 
     //Declare variables for raycasting & grabbing
+    private Vector3[] LegDirections;
+    private List<Vector3> StingDirections = new List<Vector3>();
+    private List<Vector3> GrabDirections = new List<Vector3>();
     private int layerMask = 1 << 9;
-    private RaycastHit hit;
+    //private RaycastHit hit;
     private Vector3 target;
+    private float grabPref;
     private Vector3 offset = new Vector3(0f, 2f, 0f);
     private float releaseRate = 15f;
     private float releaseTime;
@@ -30,21 +35,20 @@ public class BehaviourTest : MonoBehaviour
     public int points = 0;
 
 
-
     void Start()
     {
         //Assign leg colour based on whether it is a stinger or grabber
-        LegColour(1);
-        LegColour(2);
-        LegColour(3);
-        LegColour(4);
-        LegColour(5);
-        LegColour(6);
+        LegDirections = new Vector3[] {transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward};
+        for (int i = 1; i < 7; i++)
+        {
+            LegColourRaycast(i);
+        }
 
-        //Get min and max speed, and rotation range, from genome
+        //Get min and max speed, rotation range, and grabPref from genome
         minSpeed = gameObject.GetComponent<Genome>().minSpeed;
         maxSpeed = gameObject.GetComponent<Genome>().maxSpeed;
         rotationRange = gameObject.GetComponent<Genome>().rotationRange;
+        grabPref = gameObject.GetComponent<Genome>().GrabberPref;
 
     }
 
@@ -109,20 +113,24 @@ public class BehaviourTest : MonoBehaviour
     }
 
 
-    //Function to asign leg colour based on genes
-    void LegColour(int LegID)
+    //Function to assign leg colour & Stinger/Grabber directions based on genes
+    void LegColourRaycast(int LegID)
     {
         int[] LegGenes = GetComponent<Genome>().LegFunction;
         int LegGene = LegGenes[LegID-1];
+        Vector3 Direction = LegDirections[LegID-1];
         string LegName = "Leg" + LegID.ToString();
         GameObject Leg = transform.Find(LegName).gameObject;
         if (LegGene == 1)
         {
             Leg.GetComponent<Renderer>().material = grabberColour;
+            GrabDirections.Add(Direction); //add Direction to GrabDirections list
+
         }
         else if (LegGene == 2)
         {
             Leg.GetComponent<Renderer>().material = stingerColour;
+            StingDirections.Add(Direction); //add Direction to StingDirections list
         }
     }
 
@@ -138,39 +146,106 @@ public class BehaviourTest : MonoBehaviour
             rBody.velocity = Vector3.zero;
             rBody.angularVelocity = Vector3.zero;
         }
-        //if I'm not busy doing anything else, check whether anything in line of sight of grabber, and switch tag to GrabTargeting
-        else if (gameObject.CompareTag("Creature") && Physics.Raycast(transform.position, transform.up, out hit, Mathf.Infinity, layerMask))
-        {
-            gameObject.tag = "GrabTargeting";
-            target = hit.point;
-        }
-        //if nothing in line of sight of grabber, check if anything in line of sight of stinger
-        else if ((gameObject.CompareTag("Creature") || gameObject.CompareTag("Grabbing")) && Physics.Raycast(transform.position, -transform.up, out hit, Mathf.Infinity, layerMask))
-        {
-            if (gameObject.CompareTag("Creature"))
-            {
-                gameObject.tag = "StingTargeting";
-            }
-            else
-            {
-                gameObject.tag = "StingTargeting_G";
-            }
-            target = hit.point;
-        }
         //if there's a detected target, move in the direction of target until you collide with it
         else if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting") || gameObject.CompareTag("StingTargeting_G"))
         {
             transform.position = Vector3.MoveTowards(transform.position, target, Time.fixedDeltaTime * speed);
         }
-        //else, move randomly
+        //Else, check my raycasts and target if something found, otherwise move randomly
         else
         {
-            Vector3 randomDirection = new Vector3(0, Mathf.Sin(timeVar) * (rotationRange / 2), 0); // Moving at random angles 
-            timeVar += step;
-            GetComponent<Rigidbody>().AddForce(transform.forward * speed);
-            transform.Rotate(randomDirection * Time.fixedDeltaTime * 10.0f);
+            List<Vector3> GrabHits = new List<Vector3>();
+            List<Vector3> StingHits = new List<Vector3>();
+            if (GrabDirections.Any() && !gameObject.CompareTag("Grabbing"))
+            {
+                foreach (Vector3 direction in GrabDirections)
+                {
+                    RaycastHit hit;
+                    if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, layerMask))
+                    {
+                        GrabHits.Add(hit.point);
+                    }
+                }
+            }
+            if (StingDirections.Any())
+            {
+                foreach (Vector3 direction in StingDirections)
+                {
+                    RaycastHit hit;
+                    if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, layerMask))
+                    {
+                        StingHits.Add(hit.point);
+                    }
+                }
+            }
+            if (GrabHits.Any() && !StingHits.Any())
+            {
+                //Find closest point in Grab List & set as target
+                target = GetClosestHitPoint(GrabHits);
+                gameObject.tag = "GrabTargeting";
+            }
+            else if (!GrabHits.Any() && StingHits.Any())
+            {
+                //Find closest point in Sting List & set as target
+                target = GetClosestHitPoint(StingHits);
+                if (gameObject.CompareTag("Creature"))
+                {
+                    gameObject.tag = "StingTargeting";
+                }
+                else
+                {
+                    gameObject.tag = "StingTargeting_G";
+                }
+            }
+            else if (GrabHits.Any() && StingHits.Any())
+            {
+                //depends on genome grabber preference
+                if (grabPref >= 0.5)
+                {
+                    target = GetClosestHitPoint(GrabHits);
+                    gameObject.tag = "GrabTargeting";
+                }
+                else
+                {
+                    target = GetClosestHitPoint(StingHits);
+                    if (gameObject.CompareTag("Creature"))
+                    {
+                        gameObject.tag = "StingTargeting";
+                    }
+                    else
+                    {
+                        gameObject.tag = "StingTargeting_G";
+                    }
+                }
+            }
+            else
+            {
+                //Move randomly if both lists empty
+                Vector3 randomDirection = new Vector3(0, Mathf.Sin(timeVar) * (rotationRange / 2), 0); // Moving at random angles 
+                timeVar += step;
+                GetComponent<Rigidbody>().AddForce(transform.forward * speed);
+                transform.Rotate(randomDirection * Time.fixedDeltaTime * 10.0f);
+            }
         }
     }
+
+    //Function to find closest hit point to me
+    Vector3 GetClosestHitPoint(List<Vector3> hits)
+    {
+        Vector3 Closest = Vector3.zero;
+        float minDist = Mathf.Infinity;
+        foreach (Vector3 hitp in hits)
+        {
+            float dist = Vector3.Distance(hitp, transform.position);
+            if (dist < minDist)
+            {
+                Closest = hitp;
+                minDist = dist;
+            }
+        }
+        return Closest;
+    }
+
 
     //Function that defines grabbing behaviour
     void Grab(Collision collision)

@@ -233,10 +233,10 @@ MonoBehaviour:
   FoodPrefab: {fileID: 1362375701495828096, guid: 946afe776a197f7428d9ece02e901011,
     type: 3}
   foodAmount: 20
-  foodProb: 0.001
+  foodProb: 0.01
   minimumHeight: 2
   maximumHeight: 7
-  creatureNum: 10
+  creatureNum: 15
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0
