@@ -62,16 +62,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\AntennaSteering.cs" />
-    <Compile Include="Assets\Scripts\BehaviourTest.cs" />
     <Compile Include="Assets\Scripts\CreatureBehaviour.cs" />
     <Compile Include="Assets\Scripts\Genome.cs" />
-    <Compile Include="Assets\Scripts\GrabFood.cs" />
-    <Compile Include="Assets\Scripts\RandomMotionParams.cs" />
     <Compile Include="Assets\Scripts\Rotator.cs" />
     <Compile Include="Assets\Scripts\RunSim.cs" />
-    <Compile Include="Assets\Scripts\SpawnCreaturesAndFood2.cs" />
-    <Compile Include="Assets\Scripts\TestRun.cs" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/jkk4/OneDrive - University of St Andrews/DIGI-ORG/Unity simulations/EvoSim_1.0/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>

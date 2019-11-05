@@ -2,27 +2,28 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System.IO;
 
 public class RunSim : MonoBehaviour
 {
-    //inputs
+    //Inputs
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
     public Genome genome;
-    public Behaviour behaviour;
+    public CreatureBehaviour creatureBehaviour;
 
-    //simulation parameters
-    public int foodAmount = 20;
-    public float foodProb = 0.001f;
+    //Simulation parameters
+    public int creatureNum = 12;
+    public int foodAmount = 24;
+    public float foodProb = 0.01f;
+    public float mutationRate = 0.01f;
     public float minimumHeight = 2f;
     public float maximumHeight = 7f;
-    public int creatureNum = 4;
-    public float minimumSpeed = 0f;
-    public float maximumSpeed = 35f;
-    public float minumumRotation = 80f;
-    public float resetRate = 30f;
+    public float minSpeed = 10f;
+    public float maxSpeed = 50f;
+    public float maxRotationRange = 180f;
+    public float resetRate = 60f;
     private float resetTime;
-    //public float mutationRate = 0.1;
 
     // Start is called before the first frame update
     void Start()
@@ -32,16 +33,15 @@ public class RunSim : MonoBehaviour
         //Spawn food in random locations
         SpawnFood(foodAmount);
 
-        //Spawn some random creatures
+        //Spawn initial creatures, each with 1 grabber
         for (var i = 0; i < creatureNum; ++i)
         {
-            Vector3 position = new Vector3(Random.Range(-15f, 15f), 0.5f, Random.Range(-15f, 15f));
-            GameObject creature = new GameObject("creature");
-            creature.AddComponent<Genome>();
-            creature.AddComponent<Behaviour>();
-            
-
-        
+            Vector3 position = new Vector3(Random.Range(-15f, 15f), Random.Range(minimumHeight, maximumHeight), Random.Range(-15f, 15f));
+            GameObject baby = Instantiate(CreaturePrefab, position, Quaternion.identity);
+            //keep all genes as default except set a random maxSpeed & rotationRange
+            baby.GetComponent<Genome>().minSpeed = minSpeed;
+            baby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed+1,maxSpeed);
+            baby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange);            
         }
     }
 
@@ -56,19 +56,19 @@ public class RunSim : MonoBehaviour
             Instantiate(FoodPrefab, position, Quaternion.identity);
         }
 
-        //Every several seconds, we respawn a set of new creatures based on who was most successful
+        //Every time resetRate elapses, we respawn a set of new creatures based on who had the most points
         if (Time.time > resetTime)
         {
             resetTime = Time.time + resetRate;
 
             //Count creature success & Create new creatures
             Reproduction();
-
+             
             //Also respawn the food
             DestroyTag("Pick Up");
+            DestroyTag("Inert");
             SpawnFood(foodAmount);
         }
-
     }
 
     //Function to spawn food
@@ -97,35 +97,114 @@ public class RunSim : MonoBehaviour
         List<GameObject> babiesList = new List<GameObject>(); //create empty list for creatures
         GameObject[] creatureList1 = GameObject.FindGameObjectsWithTag("Creature");
         GameObject[] creatureList2 = GameObject.FindGameObjectsWithTag("Grabbing");
-        GameObject[] creatureList3 = GameObject.FindGameObjectsWithTag("Targeting");
-        GameObject[] creatureList0 = creatureList1.Concat(creatureList2).ToArray();
-        GameObject[] creatureList = creatureList0.Concat(creatureList3).ToArray();
+        GameObject[] creatureList3 = GameObject.FindGameObjectsWithTag("GrabTargeting");
+        GameObject[] creatureList4 = GameObject.FindGameObjectsWithTag("StingTargeting");
+        GameObject[] creatureList5 = GameObject.FindGameObjectsWithTag("StingTargeting_G");
+        GameObject[] creatureListA = creatureList1.Concat(creatureList2).ToArray();
+        GameObject[] creatureListB = creatureList3.Concat(creatureList4).ToArray();
+        GameObject[] creatureListC = creatureListA.Concat(creatureListB).ToArray();
+        GameObject[] creatureList = creatureListC.Concat(creatureList5).ToArray();
         //Debug.Log(creatureList);
         foreach (GameObject creature in creatureList)
         {
             creature.tag = "OldGeneration"; //Tag it to be destroyed
-            var count = creature.GetComponent<GrabFood>().count; //get the food count of each creature
+            var count = creature.GetComponent<CreatureBehaviour>().points; //get the points count of each creature
             for (var j = 0; j < (count + 1) * 5; j++)
             {
-                babiesList.Add(creature); //add the creature to the list j number of times, where j is the food count
+                babiesList.Add(creature); //add the creature to the list j number of times, where j is the points*5
             }
         }
         //Now generate the new creatures
         for (var k = 0; k < creatureNum; k++)
         {
-            int rand2 = Random.Range(0, babiesList.Count - 1); //generate random number
-            GameObject babyToClone = babiesList[rand2]; //get the creature corresponding to this index in the list
-            float speed = babyToClone.GetComponent<AntennaSteering>().maxSpeed;
-            float rotRange = babyToClone.GetComponent<AntennaSteering>().rotationRange;
-            Vector3 position = new Vector3(Random.Range(-15f, 15f), 0.5f, Random.Range(-15f, 15f));
-            GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
-            newbaby.GetComponent<AntennaSteering>().maxSpeed = speed;
-            newbaby.GetComponent<AntennaSteering>().rotationRange = rotRange;
-            //Instantiate(babyToClone, position, Quaternion.identity); //clone this creature at a random location
-            //Chance of a mutation??
-
+            int rand = Random.Range(0, babiesList.Count - 1); //generate random number
+            GameObject babyToClone = babiesList[rand]; //get the creature corresponding to this index in the list
+            CreateCreature(babyToClone); //Clone this creature (with small chance of mutation at each locus)
         }
         //Destroy previous creatures
         DestroyTag("OldGeneration");
     }
+
+    //Function to create a new creature, either with random gene values, or clone of a parent, with some chance of mutation
+    void CreateCreature(GameObject parent = null)
+    {
+        Vector3 position = new Vector3(Random.Range(-15f, 15f), Random.Range(minimumHeight, maximumHeight), Random.Range(-15f, 15f));
+        GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
+        //min speed same for everyone
+        newbaby.GetComponent<Genome>().minSpeed = minSpeed;
+        //max speed
+        float rand1 = Random.value;
+        if (rand1 <= mutationRate || parent == null)
+        {
+            newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed);
+            Debug.Log("Mutation!");
+        }
+        else
+        {
+            newbaby.GetComponent<Genome>().maxSpeed = parent.GetComponent<Genome>().maxSpeed;
+        }
+        //rotation range
+        float rand2 = Random.value;
+        if (rand2 <= mutationRate || parent == null)
+        {
+            newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange);
+            Debug.Log("Mutation!");
+        }
+        else
+        {
+            newbaby.GetComponent<Genome>().rotationRange = parent.GetComponent<Genome>().rotationRange;
+        }
+        //grabber pref
+        float rand3 = Random.value;
+        if (rand3 <= mutationRate || parent == null)
+        {
+            newbaby.GetComponent<Genome>().GrabberPref = Random.value;
+            Debug.Log("Mutation!");
+        }
+        else
+        {
+            newbaby.GetComponent<Genome>().GrabberPref = parent.GetComponent<Genome>().GrabberPref;
+        }
+        //leg functions
+        int[] LegGenes = newbaby.GetComponent<Genome>().LegFunction;
+        int[] ParentLegGenes;
+        if (parent == null)
+        {
+            ParentLegGenes = LegGenes;
+        }
+        else
+        {
+            ParentLegGenes = parent.GetComponent<Genome>().LegFunction;
+        }
+        for (var i = 0; i < LegGenes.Length; ++i)
+        {
+            float rand4 = Random.value;
+            if (rand4 <= mutationRate || parent == null)
+            {
+                LegGenes[i] = Random.Range(0, 3);
+                Debug.Log("Mutation!");
+            }
+            else
+            {
+                LegGenes[i] = ParentLegGenes[i];
+            }     
+        }
+        newbaby.GetComponent<Genome>().LegFunction = LegGenes;
+    }
+
+    void WriteData(float data)
+    {
+        string path = "Assets/Data/Data.txt";
+        StreamWriter writer = new StreamWriter(path, true);
+        writer.WriteLine(data.ToString());
+        writer.Close();
+        /*
+        //Re-import the file to update the reference in the editor
+        AssetDatabase.ImportAsset(path);
+        TextAsset asset = Resources.Load("Data");
+        */
+    }
 }
+
+
+

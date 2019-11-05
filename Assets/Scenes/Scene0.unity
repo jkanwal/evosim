@@ -225,18 +225,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 727085159}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f84e5ab9d0c948343ad5bd0390ab71ee, type: 3}
+  m_Script: {fileID: 11500000, guid: 098c23372372f134394cfdcee5a40c0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   CreaturePrefab: {fileID: 703432654380065365, guid: dddb77a2329e13b4891ca7d3b3f44ac9,
     type: 3}
   FoodPrefab: {fileID: 1362375701495828096, guid: 946afe776a197f7428d9ece02e901011,
     type: 3}
-  foodAmount: 20
+  genome: {fileID: 0}
+  creatureBehaviour: {fileID: 0}
+  creatureNum: 12
+  foodAmount: 24
   foodProb: 0.01
+  mutationRate: 0.1
   minimumHeight: 2
   maximumHeight: 7
-  creatureNum: 15
+  minSpeed: 10
+  maxSpeed: 50
+  maxRotationRange: 180
+  resetRate: 60
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0

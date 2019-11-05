@@ -14,6 +14,8 @@ TagManager:
   - StingTargeting
   - StingTargeting_G
   - Inert
+  - Grabbed
+  - Grabbing_G
   layers:
   - Default
   - TransparentFX
