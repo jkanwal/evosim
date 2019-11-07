@@ -23,13 +23,16 @@ public class CreatureBehaviour : MonoBehaviour
     private List<Vector3> StingDirections = new List<Vector3>();
     private List<Vector3> GrabDirections = new List<Vector3>();
     private int layerMask = 1 << 9;
-    //private RaycastHit hit;
     private Vector3 target;
+    private Vector3 targetDirection;
     private float grabPref;
-    private Vector3 offset = new Vector3(0f, 2f, 0f);
+    //private Vector3 offset = new Vector3(0f, 2f, 0f);
     private float releaseRate = 15f;
-    private float releaseTime;
-    private GameObject grabbee;
+    //private float releaseTime;
+    //private GameObject grabbee;
+    private List<GameObject> Grabbees = new List<GameObject>();
+    private List<Vector3> TargetDirections = new List<Vector3>();
+    private List<float> ReleaseTimes = new List<float>();
 
     //keep track of my food points
     public int points = 0;
@@ -37,8 +40,8 @@ public class CreatureBehaviour : MonoBehaviour
 
     void Start()
     {
+        LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
         //Assign leg colour based on whether it is a stinger or grabber
-        LegDirections = new Vector3[] {transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward};
         for (int i = 1; i < 7; i++)
         {
             LegColourRaycast(i);
@@ -49,31 +52,55 @@ public class CreatureBehaviour : MonoBehaviour
         maxSpeed = gameObject.GetComponent<Genome>().maxSpeed;
         rotationRange = gameObject.GetComponent<Genome>().rotationRange;
         grabPref = gameObject.GetComponent<Genome>().GrabberPref;
-
     }
 
     void FixedUpdate()
     {
-        //if I'm grabbing food, digest it and get a point
-        if (grabbee != null && grabbee.CompareTag("Pick Up"))
+        //if I'm grabbing food, digest it and get a point after releaseRate amount of time
+        //iterate backwards as we may be deleting elements from the list
+        if (Grabbees.Count > 0)
         {
-            if (Time.time > releaseTime)
+            for (int i = Grabbees.Count - 1; i >= 0; i--)
             {
-                Destroy(grabbee);
-                grabbee = null; //empty my grabbee variable
-                points += 1;   
-                //if I'm not already dead, reset my Grabbing tag
-                if (!gameObject.CompareTag("Inert"))
+                if (Grabbees[i] != null)
                 {
-                    if (gameObject.CompareTag("Grabbing"))
+                    if (Grabbees[i].CompareTag("Pick Up"))
                     {
-                        gameObject.tag = "Creature"; 
-                    }
-                    else if (gameObject.CompareTag("Grabbing_G"))
-                    {
-                        gameObject.tag = "Grabbed";
+                        if (Time.time > ReleaseTimes[i])
+                        {
+                            points += 1; //get a point for digesting food!
+                            //Grabbees.Remove(grabbee);
+                            Destroy(Grabbees[i]); //destroy grabbee
+                            Grabbees.RemoveAt(i); //remove from Grabbee list
+                            GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
+                            TargetDirections.RemoveAt(i); //and remove it from the target directions list
+                            ReleaseTimes.RemoveAt(i); //also remove the corresponding release time
+                        
+                            /*
+                            //if I'm not already dead, reset my Grabbing tag
+                            if (!gameObject.CompareTag("Inert"))
+                            {
+                                if (gameObject.CompareTag("Grabbing"))
+                                {
+                                    gameObject.tag = "Creature";
+                                }
+                                else if (gameObject.CompareTag("Grabbing_G"))
+                                {
+                                    gameObject.tag = "Grabbed";
+                                }
+                            }
+                            */
+                        }
                     }
                 }
+                else
+                { 
+                    Grabbees.RemoveAt(i);
+                } 
+            }
+        }
+        
+ 
                 /* (Commented out, so keeping hold of other creatures for now)
                 //if I'm grabbing a creature, release it
                 else
@@ -87,10 +114,9 @@ public class CreatureBehaviour : MonoBehaviour
                 gameObject.tag = "Creature"; //reset my Grabbing tag
                 grabbee = null; //empty my grabbee variable
                 */
-            }
-        }
 
         MotionController(); //defines all the different conditions for different types of motion
+
     }
 
 
@@ -121,22 +147,15 @@ public class CreatureBehaviour : MonoBehaviour
     {
         float speed = Random.Range(minSpeed, maxSpeed); //set a random speed for each time step
 
-        //if I'm dead, do nothing
-        if (gameObject.CompareTag("Inert"))
-        {
-            Rigidbody rBody = GetComponent<Rigidbody>();
-            rBody.velocity = Vector3.zero;
-            rBody.angularVelocity = Vector3.zero;
-        }
-        //if I'm being grabbed by someone else, do nothing
-        else if (gameObject.CompareTag("Grabbed") || gameObject.CompareTag("Grabbing_G"))
+        //if I'm dead, or bring grabbed by someone else, do nothing
+        if (gameObject.CompareTag("Inert") || gameObject.CompareTag("Grabbed"))
         {
             Rigidbody rBody = GetComponent<Rigidbody>();
             rBody.velocity = Vector3.zero;
             rBody.angularVelocity = Vector3.zero;
         }
         //if there's a detected target, move in the direction of target until you collide with it (or a wall)
-        else if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting") || gameObject.CompareTag("StingTargeting_G"))
+        else if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting"))
         {
             transform.position = Vector3.MoveTowards(transform.position, target, Time.fixedDeltaTime * speed);
         }
@@ -144,8 +163,9 @@ public class CreatureBehaviour : MonoBehaviour
         else
         {
             List<Vector3> GrabHits = new List<Vector3>();
+            List<Vector3> GrabTargetDirections = new List<Vector3>();
             List<Vector3> StingHits = new List<Vector3>();
-            if (GrabDirections.Any() && !gameObject.CompareTag("Grabbing") && !gameObject.CompareTag("Grabbing_G"))
+            if (GrabDirections.Any())
             {
                 foreach (Vector3 direction in GrabDirections)
                 {
@@ -153,6 +173,7 @@ public class CreatureBehaviour : MonoBehaviour
                     if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, layerMask))
                     {
                         GrabHits.Add(hit.point);
+                        GrabTargetDirections.Add(direction);
                     }
                 }
             }
@@ -171,12 +192,15 @@ public class CreatureBehaviour : MonoBehaviour
             {
                 //Find closest point in Grab List & set as target
                 target = GetClosestHitPoint(GrabHits);
+                targetDirection = GrabTargetDirections[GrabHits.IndexOf(target)];
                 gameObject.tag = "GrabTargeting";
             }
             else if (!GrabHits.Any() && StingHits.Any())
             {
                 //Find closest point in Sting List & set as target
                 target = GetClosestHitPoint(StingHits);
+                gameObject.tag = "StingTargeting";
+                /*
                 if (gameObject.CompareTag("Creature"))
                 {
                     gameObject.tag = "StingTargeting";
@@ -185,6 +209,7 @@ public class CreatureBehaviour : MonoBehaviour
                 {
                     gameObject.tag = "StingTargeting_G";
                 }
+                */
             }
             else if (GrabHits.Any() && StingHits.Any())
             {
@@ -192,11 +217,14 @@ public class CreatureBehaviour : MonoBehaviour
                 if (grabPref >= 0.5)
                 {
                     target = GetClosestHitPoint(GrabHits);
+                    targetDirection = GrabTargetDirections[GrabHits.IndexOf(target)];
                     gameObject.tag = "GrabTargeting";
                 }
                 else
                 {
                     target = GetClosestHitPoint(StingHits);
+                    gameObject.tag = "StingTargeting";
+                    /*
                     if (gameObject.CompareTag("Creature"))
                     {
                         gameObject.tag = "StingTargeting";
@@ -205,6 +233,7 @@ public class CreatureBehaviour : MonoBehaviour
                     {
                         gameObject.tag = "StingTargeting_G";
                     }
+                    */
                 }
             }
             else
@@ -226,7 +255,7 @@ public class CreatureBehaviour : MonoBehaviour
         if (!collision.gameObject.CompareTag("Walls"))
         {
             //if sting targeting, sting it
-            if (gameObject.CompareTag("StingTargeting") || gameObject.CompareTag("StingTargeting_G"))
+            if (gameObject.CompareTag("StingTargeting"))
             {
                 Sting(collision);
             }
@@ -239,13 +268,15 @@ public class CreatureBehaviour : MonoBehaviour
         }
         else //(i.e. if you collide with a wall...)
         {
+            /*
             //if you were StingTargeting_G, go back to grabbing mode
             if (gameObject.CompareTag("StingTargeting_G"))
             {
                 gameObject.tag = "Grabbing";
             }
+            */
             //if you were GrabTargeting or StingTargeting, go back to random motion
-            else if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting"))
+            if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting"))
             {
                 gameObject.tag = "Creature";
             }
@@ -256,17 +287,22 @@ public class CreatureBehaviour : MonoBehaviour
     //Function that defines grabbing behaviour
     void Grab(Collision collision)
     {
-        grabbee = collision.gameObject;
-        if (!grabbee.CompareTag("Pick Up"))
+        Grabbees.Add(collision.gameObject);
+        TargetDirections.Add(targetDirection);
+        GrabDirections.Remove(targetDirection);
+        ReleaseTimes.Add(Time.time + releaseRate);
+        if (!collision.gameObject.CompareTag("Pick Up"))
         {
-            grabbee.tag = "Grabbed";
+            collision.gameObject.tag = "Grabbed";
         }
-        Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
+        Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
         rBody.isKinematic = true;
         //rBody.detectCollisions = false;
         collision.transform.SetParent(transform);
-        collision.transform.localPosition = offset;
-        releaseTime = Time.time + releaseRate;
+        collision.transform.position = transform.position;
+        collision.transform.localPosition = 2*targetDirection;
+        gameObject.tag = "Creature";
+        /*
         if (gameObject.CompareTag("Grabbed"))
         {
             gameObject.tag = "Grabbing_G";
@@ -275,6 +311,7 @@ public class CreatureBehaviour : MonoBehaviour
         {
             gameObject.tag = "Grabbing";
         }
+        */
     }
 
     //Function that defines stinging behaviour
@@ -295,6 +332,8 @@ public class CreatureBehaviour : MonoBehaviour
         {
             rend.material = stingerColour;
         }
+        gameObject.tag = "Creature";
+        /*
         if (gameObject.CompareTag("StingTargeting_G"))
         {
             gameObject.tag = "Grabbing";
@@ -303,6 +342,7 @@ public class CreatureBehaviour : MonoBehaviour
         {
             gameObject.tag = "Creature";
         }
+        */
         //Debug.Log("Destroyed " + collision.gameObject.ToString());
     }
 
