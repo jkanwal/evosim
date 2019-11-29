@@ -161,7 +161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c21f3c1148da6c4aa6e72e9c11b71ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LegFunction: 010000000000000000000000000000000000000000000000
+  LegFunction: 010000000100000001000000020000000000000000000000
   minSpeed: 10
   maxSpeed: 50
   rotationRange: 120
@@ -181,6 +181,9 @@ MonoBehaviour:
   genome: {fileID: 0}
   grabberColour: {fileID: 2100000, guid: 6eac181ce9bfbf44cbe77a31a0b5d1ac, type: 2}
   stingerColour: {fileID: 2100000, guid: de2e3ae470b5f514f94e2c7ca9d66319, type: 2}
+  layerMask: 512
+  raycastLimit: 15
+  releaseRate: 5
   points: 0
 --- !u!1 &703432654476161116
 GameObject:

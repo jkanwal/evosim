@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System.IO;
 
 public class CreatureBehaviour : MonoBehaviour
 {
@@ -22,12 +23,13 @@ public class CreatureBehaviour : MonoBehaviour
     private Vector3[] LegDirections;
     private List<Vector3> StingDirections = new List<Vector3>();
     private List<Vector3> GrabDirections = new List<Vector3>();
-    private int layerMask = 1 << 9;
+    public int layerMask = 1 << 9;
+    public float raycastLimit = 15f;
     private Vector3 target;
     private Vector3 targetDirection;
     private float grabPref;
     //private Vector3 offset = new Vector3(0f, 2f, 0f);
-    private float releaseRate = 15f;
+    public float releaseRate = 5f;
     //private float releaseTime;
     //private GameObject grabbee;
     private List<GameObject> Grabbees = new List<GameObject>();
@@ -170,7 +172,7 @@ public class CreatureBehaviour : MonoBehaviour
                 foreach (Vector3 direction in GrabDirections)
                 {
                     RaycastHit hit;
-                    if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, layerMask))
+                    if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
                     {
                         GrabHits.Add(hit.point);
                         GrabTargetDirections.Add(direction);
@@ -182,7 +184,7 @@ public class CreatureBehaviour : MonoBehaviour
                 foreach (Vector3 direction in StingDirections)
                 {
                     RaycastHit hit;
-                    if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, layerMask))
+                    if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
                     {
                         StingHits.Add(hit.point);
                     }
@@ -200,16 +202,6 @@ public class CreatureBehaviour : MonoBehaviour
                 //Find closest point in Sting List & set as target
                 target = GetClosestHitPoint(StingHits);
                 gameObject.tag = "StingTargeting";
-                /*
-                if (gameObject.CompareTag("Creature"))
-                {
-                    gameObject.tag = "StingTargeting";
-                }
-                else
-                {
-                    gameObject.tag = "StingTargeting_G";
-                }
-                */
             }
             else if (GrabHits.Any() && StingHits.Any())
             {
@@ -224,16 +216,6 @@ public class CreatureBehaviour : MonoBehaviour
                 {
                     target = GetClosestHitPoint(StingHits);
                     gameObject.tag = "StingTargeting";
-                    /*
-                    if (gameObject.CompareTag("Creature"))
-                    {
-                        gameObject.tag = "StingTargeting";
-                    }
-                    else
-                    {
-                        gameObject.tag = "StingTargeting_G";
-                    }
-                    */
                 }
             }
             else
@@ -251,8 +233,8 @@ public class CreatureBehaviour : MonoBehaviour
     //What happens when you collide with an object?  
     void OnCollisionEnter(Collision collision)
     {
-        //If you collide with something other than a wall...
-        if (!collision.gameObject.CompareTag("Walls"))
+        //If you collide with something other than a wall or dead thing...
+        if (!collision.gameObject.CompareTag("Walls") && !collision.gameObject.CompareTag("Inert"))
         {
             //if sting targeting, sting it
             if (gameObject.CompareTag("StingTargeting"))
@@ -266,15 +248,8 @@ public class CreatureBehaviour : MonoBehaviour
             }
 
         }
-        else //(i.e. if you collide with a wall...)
+        else //(i.e. if you collide with a wall or dead thing...)
         {
-            /*
-            //if you were StingTargeting_G, go back to grabbing mode
-            if (gameObject.CompareTag("StingTargeting_G"))
-            {
-                gameObject.tag = "Grabbing";
-            }
-            */
             //if you were GrabTargeting or StingTargeting, go back to random motion
             if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting"))
             {
@@ -302,16 +277,6 @@ public class CreatureBehaviour : MonoBehaviour
         collision.transform.position = transform.position;
         collision.transform.localPosition = 2*targetDirection;
         gameObject.tag = "Creature";
-        /*
-        if (gameObject.CompareTag("Grabbed"))
-        {
-            gameObject.tag = "Grabbing_G";
-        }
-        else
-        {
-            gameObject.tag = "Grabbing";
-        }
-        */
     }
 
     //Function that defines stinging behaviour
@@ -321,11 +286,17 @@ public class CreatureBehaviour : MonoBehaviour
         {
             Destroy(collision.gameObject.GetComponent<Rotator>());
         }
-        collision.gameObject.tag = "Inert";
-        collision.gameObject.layer = 8;
         Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
         rBody.isKinematic = true;
-        rBody.detectCollisions = false;
+        //rBody.detectCollisions = false;
+        collision.gameObject.tag = "Inert";
+        collision.gameObject.layer = 8;
+        collision.transform.parent = null;
+        foreach (Transform child in collision.transform)
+        {
+            child.gameObject.tag = "Inert";
+            child.gameObject.layer = 8;
+        }
         Renderer[] children;
         children = collision.gameObject.GetComponentsInChildren<Renderer>();
         foreach (Renderer rend in children)
@@ -333,17 +304,6 @@ public class CreatureBehaviour : MonoBehaviour
             rend.material = stingerColour;
         }
         gameObject.tag = "Creature";
-        /*
-        if (gameObject.CompareTag("StingTargeting_G"))
-        {
-            gameObject.tag = "Grabbing";
-        }
-        else
-        {
-            gameObject.tag = "Creature";
-        }
-        */
-        //Debug.Log("Destroyed " + collision.gameObject.ToString());
     }
 
     //Function to find closest hit point to me

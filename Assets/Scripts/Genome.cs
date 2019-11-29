@@ -17,7 +17,6 @@ public class Genome : MonoBehaviour
     public float GrabberPref = 0.5f; //prefers grabber over stinger if >= 0.5
     //public float GrabberBehaviour = 0.5f; //goes for other creatures over food with this probability
     //public float StingerBehaviour = 0.5f; //goes for other creatures over food with this probability
-    //public float DecisionBehaviour = ; //this is what we need to hammer out...when both are detected...
 
 }
               

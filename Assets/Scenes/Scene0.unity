@@ -130,7 +130,7 @@ PrefabInstance:
     - target: {fileID: 1809385878306017445, guid: 2da58e3e79209d44e8221e3d6b44e998,
         type: 3}
       propertyPath: m_Name
-      value: Arena
+      value: Arena 1
       objectReference: {fileID: 0}
     - target: {fileID: 6644187807378610946, guid: 2da58e3e79209d44e8221e3d6b44e998,
         type: 3}
@@ -187,6 +187,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6644187807378610946, guid: 2da58e3e79209d44e8221e3d6b44e998,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6644187807378610946, guid: 2da58e3e79209d44e8221e3d6b44e998,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6644187807378610946, guid: 2da58e3e79209d44e8221e3d6b44e998,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5293025276914424965, guid: 2da58e3e79209d44e8221e3d6b44e998,
         type: 3}
       propertyPath: m_Mesh
@@ -210,7 +225,7 @@ GameObject:
   - component: {fileID: 727085161}
   - component: {fileID: 727085160}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: RunSim
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -234,16 +249,23 @@ MonoBehaviour:
     type: 3}
   genome: {fileID: 0}
   creatureBehaviour: {fileID: 0}
+  writepath: Assets/Data/data_test0.csv
   creatureNum: 12
   foodAmount: 24
   foodProb: 0.01
-  mutationRate: 0.1
+  mutationRate: 0.01
   minimumHeight: 2
   maximumHeight: 7
   minSpeed: 10
   maxSpeed: 50
   maxRotationRange: 180
-  resetRate: 60
+  resetRate: 30
+  xzMin: -13
+  xzMax: 13
+  patchNum: 10
+  genNum: 12
+  global: 0
+  rHigh: 1
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0
