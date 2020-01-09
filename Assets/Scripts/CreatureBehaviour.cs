@@ -39,7 +39,6 @@ public class CreatureBehaviour : MonoBehaviour
     //keep track of my food points
     public int points = 0;
 
-
     void Start()
     {
         LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
@@ -77,21 +76,6 @@ public class CreatureBehaviour : MonoBehaviour
                             GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
                             TargetDirections.RemoveAt(i); //and remove it from the target directions list
                             ReleaseTimes.RemoveAt(i); //also remove the corresponding release time
-                        
-                            /*
-                            //if I'm not already dead, reset my Grabbing tag
-                            if (!gameObject.CompareTag("Inert"))
-                            {
-                                if (gameObject.CompareTag("Grabbing"))
-                                {
-                                    gameObject.tag = "Creature";
-                                }
-                                else if (gameObject.CompareTag("Grabbing_G"))
-                                {
-                                    gameObject.tag = "Grabbed";
-                                }
-                            }
-                            */
                         }
                     }
                 }
@@ -273,7 +257,7 @@ public class CreatureBehaviour : MonoBehaviour
         Rigidbody rBody = collision.gameObject.GetComponent<Rigidbody>();
         rBody.isKinematic = true;
         //rBody.detectCollisions = false;
-        collision.transform.SetParent(transform);
+        collision.transform.SetParent(transform, true);
         collision.transform.position = transform.position;
         collision.transform.localPosition = 2*targetDirection;
         gameObject.tag = "Creature";

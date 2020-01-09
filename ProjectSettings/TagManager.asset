@@ -8,14 +8,12 @@ TagManager:
   - Leg
   - Pick Up
   - Walls
-  - Grabbing
   - OldGeneration
   - GrabTargeting
   - StingTargeting
-  - StingTargeting_G
   - Inert
   - Grabbed
-  - Grabbing_G
+  - Arena
   layers:
   - Default
   - TransparentFX

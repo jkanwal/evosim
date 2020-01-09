@@ -7,252 +7,301 @@ using System.IO;
 public class RunSim : MonoBehaviour
 {
     //Inputs
+    public GameObject ArenaPrefab;
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
     public Genome genome;
     public CreatureBehaviour creatureBehaviour;
-    public string writepath = "Assets/Data/data.csv";
+    public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
 
-    //Simulation parameters
-    public int creatureNum = 12;
-    public int foodAmount = 24;
-    public float foodProb = 0.01f;
-    public float mutationRate = 0.01f;
-    public float minimumHeight = 2f;
-    public float maximumHeight = 7f;
-    public float minSpeed = 10f;
-    public float maxSpeed = 50f;
-    public float maxRotationRange = 180f;
-    public float resetRate = 30f;
-    public float xzMin = -13f;
-    public float xzMax = 13f;
-    public int patchNum = 10;
-    public int genNum = 10;
-
+    //Simulation parameters (which can be altered before a run)
+    public bool global = true; //Global competetion between creatures? (if false, Local competiton)
+    public bool rHigh = true; //High relatedness within a patch? (if false, Low relatedness)
+    public int patchNum = 100; //number patches per generation
+    public int creatureNum = 12; //number creatures per patch
+    public int foodAmount = 24; //starting amount of food per patch
+    public float foodProb = 0.01f; //rate of spontaneous food production in patch
+    public float mutationRate = 0.01f; //mutation rate
+    public int resetRate = 500; // number of ticks after which new generation begins
+    public int genNum = 10; //total number of generations after which simulation stops
+    public float arenaSize = 30f; // length of side of square arena
+    public float minimumHeight = 2f; //min height of object placement in patch
+    public float maximumHeight = 7f; //max height of object placement in patch
+    public float minSpeed = 10f; //min speed of creatures
+    public float maxSpeed = 50f; //max speed of creatures
+    public float maxRotationRange = 180f; //max degrees creatures can rotate at each motion step
+ 
     //Other global variables
-    public bool global = true;
-    public bool rHigh = true;
-    private float resetTime;
-    private int Generation = 0;
-    private int patch = 0;
-    private List<GameObject> parentsList = new List<GameObject>(); //create empty list of reproducers
-    private List<GameObject> parentsList_old; //keep track of parents from previous generation
+    private int Ticks;
+    private int Generation;
+    private float x0;
+    private float z0;
+    private float xzLim;
+    private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
 
 
     // Start is called before the first frame update
     void Start()
     {
-        resetTime = resetRate;
+        //resetTime = resetRate;
+        xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
         WriteData("Gen, Patch, NumGrabbers, NumStingers, MaxSpeed, MaxRotation, GrabberPref");
 
-        //Spawn initial creatures, each with only 1 grabber
-        for (var i = 0; i < creatureNum; ++i)
+        //Spawn patches (arenas)
+        x0 = 0f;
+        z0 = 0f;
+        for (var i = 0; i < patchNum; i++)
         {
-            GameObject newbaby = CreateCreature();
-            WriteGenome(newbaby);
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "Arena" + i.ToString();
+
+
+            //Spawn initial creatures, each with only 1 grabber
+            for (var j = 0; j < creatureNum; j++)
+            {
+                GameObject newbaby = CreateCreature(x0, z0);
+                newbaby.transform.SetParent(arena.transform, true);
+                WriteGenome(newbaby);
+            }
+
+            //Spawn initial food in random locations
+            SpawnFood(x0, z0, foodAmount);
+
+            //advance to next patch location
+            if (i % 10 == 9)
+            {
+                z0 = -(xzLim * 3) * (i+1)/10;
+                x0 = 0f;
+            }
+            else
+            {
+                x0 += xzLim * 3;
+            } 
         }
 
-        //Spawn food in random locations
-        SpawnFood(foodAmount);
+        Generation = 0;
+        Ticks = 0;
     }
 
+    // Fixed Update is called at a set interval, and deals with the physics & tick advances
+    void FixedUpdate()
+    {
+        Ticks += 1; //count up a Tick at each physics update
+
+        //Start a new generation after number of ticks reaches resetRate
+        if (Ticks > resetRate)
+        {
+            Debug.Log(Time.time); //log reset time
+            if (Generation >= genNum - 1)
+            {
+                UnityEditor.EditorApplication.isPlaying = false; //stop play mode when we reach max number of generations
+                //Application.Quit(); Use the above instead when in testing mode
+            }
+            else
+            {
+                NewGeneration(global, rHigh); //runs the new generation method
+                Ticks = 0; //set Ticks back to 0 
+            }
+        }  
+    }
 
     // Update is called once per frame
     void Update()
     {
+        /*
         //Constantly add new food at some slow rate
         float rand = Random.value;
         if (rand < foodProb)
         {
-            Vector3 position = new Vector3(Random.Range(xzMin, xzMax), Random.Range(minimumHeight, maximumHeight), Random.Range(xzMin, xzMax));
+            Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
             Instantiate(FoodPrefab, position, Quaternion.identity);
         }
+        */
+     
+    }
 
-        //Every time resetRate elapses, we start a new patch. 
-        //If the number of patches reaches the patchNum, then we start a new generation
-        if (Time.time > resetTime)
+    //Function to create the next generation:
+    //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
+    //Then repopulates the patches in one of 2 ways (High or Low relatedness)
+    void NewGeneration(bool global, bool rHigh)
+    {
+        string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
+        GameObject[] arenaList = GameObject.FindGameObjectsWithTag("Arena"); //array of arenas
+
+        //Global competition: Add all non-inert creatures to parentList, then rank and clip the list
+        if (global == true)
         {
-            Debug.Log(Time.time);
-            resetTime = Time.time + resetRate;
-            AddParents(global); //Add the living creatures to the parentsList (either by global or local competition)
-            DisableTag("OldGeneration"); //Disable previous creatures
-            DestroyTag("Inert"); //Destroy dead creatures
-            DestroyTag("Pick Up"); //Destroy previous food
-            if (patch >= patchNum - 1)
+            foreach (string tag in creatureTags)
             {
-                if (Generation >= genNum - 1)
+                GameObject[] creatureList0 = GameObject.FindGameObjectsWithTag(tag);
+                foreach (GameObject creature in creatureList0)
                 {
-                    UnityEditor.EditorApplication.isPlaying = false;
-                    //Application.Quit(); Use the above instead when in testing mode
+                    if (tag == "Grabbed")
+                    {
+                        creature.transform.parent = null; //if it was grabbed, detach it from parent
+                    }
+                    creature.tag = "OldGeneration"; //tag it to be disabled
+                    parentList.Add(creature); //add to parentList
+                }
+            }
+            Debug.Log("Original ParentsList: " + parentList.Count + " items");
+            //rank and clip the parentList
+            List<GameObject> parentList_ranked = parentList.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
+            parentList = parentList_ranked;
+            Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
+            foreach (GameObject creature in parentList)
+            {
+                Debug.Log(creature.GetComponent<CreatureBehaviour>().points);
+            }
+
+        } 
+        //Local competition: Go through each patch and choose the highest-scoring creature 
+        else
+        { 
+            foreach (GameObject arena in arenaList)
+            {
+                //first make list of non-inert creatures left in patch
+                List<GameObject> creatureList = new List<GameObject>(); //create empty list 
+                foreach (Transform child in arena.transform)
+                {
+                    if (creatureTags.Contains(child.tag)) //if child has a non-inert tag...
+                    {
+                        if (child.tag == "Grabbed")
+                        {
+                            child.transform.parent = arena.transform; //if it was grabbed by a creature, change parent back to arena
+                        }
+                        creatureList.Add(child.gameObject); //add to creatureList
+                    }
+                }
+                //Now go through creatureList and find highest scorer (choose randomly if tie)
+                int maxPoints = 0;
+                int rand = Random.Range(0, creatureList.Count);
+                GameObject highScorer = creatureList[rand];
+                foreach (GameObject creature in creatureList)
+                {
+                    int points = creature.GetComponent<CreatureBehaviour>().points; //get the creature's points count
+                    if (points > maxPoints)
+                    {
+                        highScorer = creature;
+                        maxPoints = points;
+                    }
+                    creature.tag = "OldGeneration"; //Tag it to be disabled
+                }
+                parentList.Add(highScorer);
+                Debug.Log("High score: " + maxPoints + ", speed: " + highScorer.GetComponent<Genome>().maxSpeed); 
+            }
+            Debug.Log("ParentsList: " + parentList.Count + " items");
+        }
+
+        //Clear out old creatures & food
+        DisableTag("OldGeneration"); //Disable previous non-inert creatures
+        DestroyTag("Inert"); //Destroy inert creatures
+        DestroyTag("Pick Up"); //Destroy previous food 
+
+        //Repopulate the patches for the next generation:
+        Generation += 1; //begin the next generation!
+        x0 = 0f; //starting coordinates for patch 0
+        z0 = 0f;
+        //If High relatedness: populate each new patch by going through parentList and cloning each member creatureNum times
+        if (rHigh == true)
+        {
+            for (int i = 0; i < patchNum; i++)
+            {
+                GameObject parent = parentList[i]; //each item in parentsList is the single parent of a patch
+                //clone this parent creatureNum times (with small chance of mutation at each locus)
+                for (int j = 0; j < creatureNum; j++)
+                {
+                    GameObject newbaby = CreateCreature(x0, z0, parent);
+                    newbaby.transform.SetParent(arenaList[i].transform, true);
+                    WriteGenome(newbaby);
+                }
+                SpawnFood(x0, z0, foodAmount); //Spawn initial food in patch
+                //advance to next patch location
+                if (i % 10 == 9)
+                {
+                    z0 = -(xzLim * 3) * (i + 1) / 10;
+                    x0 = 0f;
                 }
                 else
                 {
-                    Debug.Log("Original ParentsList: " + parentsList.Count + " items");
-                    //We're going to start a new generation, so process the reproducers list accordingly
-                    if (global == true)
-                    {
-                        //sort list in order of points & cut off the list at the top 144
-                        List<GameObject> parentsList_ranked = parentsList.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
-                        parentsList = parentsList_ranked;
-                        //Debugging:
-                        Debug.Log("Ranked and clipped List: " + parentsList.Count + " items");
-                        foreach (GameObject creature in parentsList)
-                        {
-                            Debug.Log(creature.GetComponent<CreatureBehaviour>().points);
-                        }
-                    }
-                    if (rHigh == false)
-                    {
-                        //clone everyone in the list 12 times
-                        List<GameObject> newList = new List<GameObject>(); //create new empty list for clones
-                        foreach (GameObject parent in parentsList)
-                        {
-                            for (var i = 0; i < creatureNum; i++)
-                            {
-                                GameObject newbaby = CreateCreature(parent);
-                                newList.Add(newbaby);
-                                newbaby.SetActive(false); //make sure the creatures are inactive until they are called to populate a patch
-                            }
-                        }
-                        //do a random shuffle on this list
-                        for (int j = 0; j < newList.Count; j++)
-                        {
-                            GameObject temp = newList[j];
-                            int randomIndex = Random.Range(j, newList.Count);
-                            newList[j] = newList[randomIndex];
-                            newList[randomIndex] = temp;
-                        }
-                        //set it as the old parentslist
-                        parentsList = newList;
-                        Debug.Log("Clone List: " + parentsList.Count + " items");
-                    }
-                    parentsList_old = parentsList;
-                    parentsList = new List<GameObject>(); //empty the parentList for adding to from the current generation
-                    Debug.Log("Empty List: " + parentsList.Count + " items");
-                    Generation++;
-                    patch = 0;
-                }     
-            }
-            else
-            {
-                patch++;
-            }
-            SpawnFood(foodAmount); //Respawn the food
-            if (Generation == 0)
-            {
-                //Spawn Gen 0 creatures, each with only 1 grabber
-                for (var i = 0; i < creatureNum; ++i)
-                {
-                    GameObject newbaby = CreateCreature();
-                    WriteGenome(newbaby);
+                    x0 += xzLim * 3;
                 }
-            }
-            else
-            {
-                //Populate patch with creatures from parentsList_old (either rHigh or rLow)
-                PopulatePatch(rHigh);
             } 
         }
-    }
-
-
-    //Function runs at the end of each patch. Adds the surviving creatures to a reproducers list in one of 2 ways (global or local competition)
-    void AddParents(bool global)
-    {
-        //Get all non-inert creatures
-        List<GameObject> creatureList = new List<GameObject>();
-        string[] creatureTags = { "Grabbed", "Creature", "GrabTargeting", "StingTargeting"};
-        foreach(string tag in creatureTags)
-        {
-            GameObject[] creatureList0 = GameObject.FindGameObjectsWithTag(tag);
-            foreach (GameObject creature in creatureList0)
-            {
-                if (tag == "Grabbed")
-                {
-                    creature.transform.parent = null; //if it was grabbed, detach it from parent
-                }
-                creatureList.Add(creature);
-            }
-        }
-        //Add them to a reproducers list in one of 2 ways: 
-        //global competition: Just add them all and get the top 144 when it's time to change generation
-        if (global == true)
-        {
-            foreach (GameObject creature in creatureList)
-            {
-                parentsList.Add(creature); //add the creature to the list
-                creature.tag = "OldGeneration"; //Tag it to be disabled
-            }
-
-        }
-        //local competition: Only add highest scorer from patch (choose randomly if tie)
+        //If Low relatedness: clone each item in parentList creatureNum times, then shuffle the list, and divide into patches
         else
         {
-            int rand = Random.Range(0,creatureList.Count);
-            GameObject highScorer = creatureList[rand]; //default winner is randomly chosen
-            int maxPoints = 0;
-            foreach (GameObject creature in creatureList)
+            //Clone each item in parentList creatureNum times
+            List<GameObject> newList = new List<GameObject>(); //create new empty list for clones 
+            foreach (GameObject parent in parentList)
             {
-                int points = creature.GetComponent<CreatureBehaviour>().points; //get the points count of each creature
-                if (points > maxPoints)
+                for (int i = 0; i < creatureNum; i++)
                 {
-                    highScorer = creature;
-                    maxPoints = points;
+                    GameObject newbaby = CreateCreature(x0, z0, parent); //place all creatures in the first patch for now
+                    newList.Add(newbaby);
+                    newbaby.SetActive(false); //make sure the creatures are inactive until they are called to populate a patch
                 }
-                creature.tag = "OldGeneration"; //Tag it to be disabled
             }
-            parentsList.Add(highScorer);
-            Debug.Log("High score: " + maxPoints + ", speed: " + highScorer.GetComponent<Genome>().maxSpeed);
-        }
-    }
-
-    //Function to populate a new patch from the reproducer list
-    void PopulatePatch(bool rHigh)
-    {
-        //Generate the new creatures in one of 2 ways (r high or r low):
-        //High relatedness
-        if (rHigh == true)
-        {
-            GameObject parent = parentsList_old[patch]; //each item in parentsList_old is the single parent of a patch
-            //clone this parent creatureNum times (with small chance of mutation at each locus)
-            for (var i = 0; i < creatureNum; i++)
+            //Do a random shuffle on the newList
+            for (int j = 0; j < newList.Count; j++)
             {
-                GameObject newbaby = CreateCreature(parent);
-                WriteGenome(newbaby);
+                GameObject temp = newList[j];
+                int randomIndex = Random.Range(j, newList.Count);
+                newList[j] = newList[randomIndex];
+                newList[randomIndex] = temp;
             }
-
-        }
-        //Low relatedness 
-        else
-        {
-            //Sequentially grab 12 creatures from parentsList_old
-            for (var i = patch*creatureNum; i < patch*creatureNum + creatureNum; i++)
+            Debug.Log("Clone List: " + newList.Count + " items");
+            //Now we sequentially grab createNum creatures at a time from the newList and place them in patches
+            int n = 0;
+            for (int k = 0; k < patchNum; k++)
             {
-                GameObject newbaby = parentsList_old[i];
-                newbaby.SetActive(true); //activate the creatures in this patch
-                WriteGenome(newbaby);
+                for (int l = n; l < n + creatureNum; l++)
+                {
+                    GameObject newbaby = newList[l];
+                    newbaby.transform.position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim)); //change the position to be in the current patch
+                    newbaby.transform.SetParent(arenaList[k].transform, true); //parent the creature to its arena
+                    newbaby.SetActive(true); //re-activate the creature
+                    WriteGenome(newbaby);
+                }
+                SpawnFood(x0, z0, foodAmount); //Spawn initial food in patch
+                n += creatureNum; //advance sliding window in newList
+                //advance to next patch location
+                if (k % 10 == 9)
+                {
+                    z0 = -(xzLim * 3) * (k + 1) / 10;
+                    x0 = 0f;
+                }
+                else
+                {
+                    x0 += xzLim * 3;
+                }
             }
-
         }
+        parentList = new List<GameObject>(); //empty the parentList for the next generation
+        Debug.Log("Empty List: " + parentList.Count + " items");
     }
 
     //Function to create a new creature, either with deafault/random gene values, or clone of a parent, with some chance of mutation
-    GameObject CreateCreature(GameObject parent = null)
+    GameObject CreateCreature(float x, float z, GameObject parent = null)
     {
-        Vector3 position = new Vector3(Random.Range(xzMin, xzMax), Random.Range(minimumHeight, maximumHeight), Random.Range(xzMin, xzMax));
+        Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim));
         GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
         //min speed same for everyone
-        newbaby.GetComponent<Genome>().minSpeed = minSpeed;
-        //max speed
+        //newbaby.GetComponent<Genome>().minSpeed = minSpeed;
         if (parent == null)
         {
-            newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed);
+            newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed); //choose random max speed
+            newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange); //choose random max rotation
         }
         else
         {
             float rand1 = Random.value;
+            float rand2 = Random.value;
+            float rand3 = Random.value;
+            //copy parent's max speed (with chance of mutation)
             if (rand1 <= mutationRate)
             {
                 newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed);
@@ -262,15 +311,7 @@ public class RunSim : MonoBehaviour
             {
                 newbaby.GetComponent<Genome>().maxSpeed = parent.GetComponent<Genome>().maxSpeed;
             }
-        }
-        //rotation range
-        float rand2 = Random.value;
-        if (parent == null)
-        {
-            newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange);
-        }
-        else
-        {
+            //copy parent's max rotation range (with chance of mutation)
             if (rand2 <= mutationRate)
             {
                 newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange);
@@ -280,11 +321,7 @@ public class RunSim : MonoBehaviour
             {
                 newbaby.GetComponent<Genome>().rotationRange = parent.GetComponent<Genome>().rotationRange;
             }
-        }
-        //grabber pref
-        if (parent != null)
-        {
-            float rand3 = Random.value;
+            //copy parent's grabber pref (with chance of mutation)
             if (rand3 <= mutationRate)
             {
                 newbaby.GetComponent<Genome>().GrabberPref = Random.value;
@@ -294,13 +331,10 @@ public class RunSim : MonoBehaviour
             {
                 newbaby.GetComponent<Genome>().GrabberPref = parent.GetComponent<Genome>().GrabberPref;
             }
-        }
-        //leg functions
-        if (parent != null)
-        {
+            //copy parent's leg functions (with chance of mutation at each leg)
             int[] LegGenes = newbaby.GetComponent<Genome>().LegFunction;
             int[] ParentLegGenes = parent.GetComponent<Genome>().LegFunction;
-            for (var i = 0; i < LegGenes.Length; ++i)
+            for (var i = 0; i < LegGenes.Length; i++)
             {
                 float rand4 = Random.value;
                 if (rand4 <= mutationRate)
@@ -311,7 +345,7 @@ public class RunSim : MonoBehaviour
                 else
                 {
                     LegGenes[i] = ParentLegGenes[i];
-                }     
+                }
             }
             newbaby.GetComponent<Genome>().LegFunction = LegGenes;
         }
@@ -321,6 +355,7 @@ public class RunSim : MonoBehaviour
     //Function to write Genome data of a creature
     void WriteGenome(GameObject creature)
     {
+        string ArenaName = creature.transform.parent.name;
         string speed = creature.GetComponent<Genome>().maxSpeed.ToString();
         string rotation = creature.GetComponent<Genome>().rotationRange.ToString();
         string grabPref = creature.GetComponent<Genome>().GrabberPref.ToString();
@@ -329,16 +364,16 @@ public class RunSim : MonoBehaviour
         string grabberNum = SGList[0].ToString();
         string stingerNum = SGList[1].ToString();
         //write new creature's genome data to file
-        string genomeData = Generation.ToString() + "," + patch.ToString() + "," + grabberNum + "," + stingerNum + "," + speed + "," + rotation + "," + grabPref;
+        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + speed + "," + rotation + "," + grabPref;
         WriteData(genomeData);
     }
 
     //Function to spawn food
-    void SpawnFood(int foodAmount)
+    void SpawnFood(float x, float z, int foodAmount)
     {
-        for (var i = 0; i < foodAmount; ++i)
+        for (var i = 0; i < foodAmount; i++)
         {
-            Vector3 position = new Vector3(Random.Range(xzMin, xzMax), Random.Range(minimumHeight, maximumHeight), Random.Range(xzMin, xzMax));
+            Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim));
             Instantiate(FoodPrefab, position, Quaternion.identity);
         }
     }
@@ -380,11 +415,11 @@ public class RunSim : MonoBehaviour
         {
             if (item == 1)
             {
-                grabbers++;
+                grabbers += 1;
             }
             else if (item == 2)
             {
-                stingers++;
+                stingers += 1;
             }
         }
         int[] GSList = {grabbers, stingers};
