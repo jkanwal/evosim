@@ -37,13 +37,15 @@ public class RunSim : MonoBehaviour
     private float x0;
     private float z0;
     private float xzLim;
+    private GameObject[] arenaList; //array of arenas
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
 
 
     // Start is called before the first frame update
     void Start()
     {
-        //resetTime = resetRate;
+        //Application.targetFrameRate = 30;
+
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
@@ -82,6 +84,7 @@ public class RunSim : MonoBehaviour
             } 
         }
 
+        arenaList = GameObject.FindGameObjectsWithTag("Arena"); //fill the array of arenas
         Generation = 0;
         Ticks = 0;
     }
@@ -109,9 +112,10 @@ public class RunSim : MonoBehaviour
     }
 
     // Update is called once per frame
+    /*
     void Update()
     {
-        /*
+        
         //Constantly add new food at some slow rate
         float rand = Random.value;
         if (rand < foodProb)
@@ -119,9 +123,8 @@ public class RunSim : MonoBehaviour
             Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
             Instantiate(FoodPrefab, position, Quaternion.identity);
         }
-        */
-     
     }
+    */
 
     //Function to create the next generation:
     //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
@@ -129,7 +132,6 @@ public class RunSim : MonoBehaviour
     void NewGeneration(bool global, bool rHigh)
     {
         string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
-        GameObject[] arenaList = GameObject.FindGameObjectsWithTag("Arena"); //array of arenas
 
         //Global competition: Add all non-inert creatures to parentList, then rank and clip the list
         if (global == true)

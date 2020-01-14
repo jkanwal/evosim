@@ -160,7 +160,7 @@ MonoBehaviour:
   writepath: Assets/Data/data.csv
   global: 1
   rHigh: 1
-  patchNum: 10
+  patchNum: 25
   creatureNum: 12
   foodAmount: 24
   foodProb: 0.01
