@@ -27,9 +27,6 @@ public class RunSim : MonoBehaviour
     public float arenaSize = 30f; // length of side of square arena
     public float minimumHeight = 2f; //min height of object placement in patch
     public float maximumHeight = 7f; //max height of object placement in patch
-    public float minSpeed = 10f; //min speed of creatures
-    public float maxSpeed = 50f; //max speed of creatures
-    public float maxRotationRange = 180f; //max degrees creatures can rotate at each motion step
  
     //Other global variables
     private int Ticks;
@@ -38,6 +35,8 @@ public class RunSim : MonoBehaviour
     private float z0;
     private float xzLim;
     private GameObject[] arenaList; //array of arenas
+    //private GameObject[] poolList; //pooling list for creatures 
+    //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
 
 
@@ -49,7 +48,7 @@ public class RunSim : MonoBehaviour
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
-        WriteData("Gen, Patch, NumGrabbers, NumStingers, MaxSpeed, MaxRotation, GrabberPref");
+        WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabberPref");
 
         //Spawn patches (arenas)
         x0 = 0f;
@@ -193,7 +192,7 @@ public class RunSim : MonoBehaviour
                     creature.tag = "OldGeneration"; //Tag it to be disabled
                 }
                 parentList.Add(highScorer);
-                Debug.Log("High score: " + maxPoints + ", speed: " + highScorer.GetComponent<Genome>().maxSpeed); 
+                Debug.Log("High score: " + maxPoints); 
             }
             Debug.Log("ParentsList: " + parentList.Count + " items");
         }
@@ -289,42 +288,14 @@ public class RunSim : MonoBehaviour
     //Function to create a new creature, either with deafault/random gene values, or clone of a parent, with some chance of mutation
     GameObject CreateCreature(float x, float z, GameObject parent = null)
     {
-        Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim));
+        Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim)); //set random position within patch
         GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
-        //min speed same for everyone
-        //newbaby.GetComponent<Genome>().minSpeed = minSpeed;
-        if (parent == null)
+        //if parent == null, do nothing (keep default gene values). Else...
+        if (parent != null)
         {
-            newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed); //choose random max speed
-            newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange); //choose random max rotation
-        }
-        else
-        {
-            float rand1 = Random.value;
-            float rand2 = Random.value;
-            float rand3 = Random.value;
-            //copy parent's max speed (with chance of mutation)
-            if (rand1 <= mutationRate)
-            {
-                newbaby.GetComponent<Genome>().maxSpeed = Random.Range(minSpeed + 1, maxSpeed);
-                Debug.Log("Mutation!");
-            }
-            else
-            {
-                newbaby.GetComponent<Genome>().maxSpeed = parent.GetComponent<Genome>().maxSpeed;
-            }
-            //copy parent's max rotation range (with chance of mutation)
-            if (rand2 <= mutationRate)
-            {
-                newbaby.GetComponent<Genome>().rotationRange = Random.Range(90f, maxRotationRange);
-                Debug.Log("Mutation!");
-            }
-            else
-            {
-                newbaby.GetComponent<Genome>().rotationRange = parent.GetComponent<Genome>().rotationRange;
-            }
             //copy parent's grabber pref (with chance of mutation)
-            if (rand3 <= mutationRate)
+            float rand = Random.value;
+            if (rand <= mutationRate)
             {
                 newbaby.GetComponent<Genome>().GrabberPref = Random.value;
                 Debug.Log("Mutation!");
@@ -358,15 +329,13 @@ public class RunSim : MonoBehaviour
     void WriteGenome(GameObject creature)
     {
         string ArenaName = creature.transform.parent.name;
-        string speed = creature.GetComponent<Genome>().maxSpeed.ToString();
-        string rotation = creature.GetComponent<Genome>().rotationRange.ToString();
         string grabPref = creature.GetComponent<Genome>().GrabberPref.ToString();
         int[] LegGenes = creature.GetComponent<Genome>().LegFunction;
         int[] SGList = CountSG(LegGenes);
         string grabberNum = SGList[0].ToString();
         string stingerNum = SGList[1].ToString();
         //write new creature's genome data to file
-        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + speed + "," + rotation + "," + grabPref;
+        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabPref;
         WriteData(genomeData);
     }
 

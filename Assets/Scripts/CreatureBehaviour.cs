@@ -148,7 +148,7 @@ public class CreatureBehaviour : MonoBehaviour
         //if there's a detected target, move in the direction of target until you collide with it (or a wall)
         else if (gameObject.CompareTag("GrabTargeting") || gameObject.CompareTag("StingTargeting"))
         {
-            float speed = Random.Range(minSpeed, maxSpeed); //set a random speed
+            float speed = Random.Range(minSpeed, maxSpeed); //set a random speed between the min and max
             transform.position = Vector3.MoveTowards(transform.position, target, Time.fixedDeltaTime * speed);
         }
         //Else, check my raycasts and target if something found, otherwise move randomly
@@ -260,9 +260,9 @@ public class CreatureBehaviour : MonoBehaviour
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
             collision.gameObject.tag = "Grabbed"; //if the grabbee is not food, change its tag to 'Grabbed'
+            Rigidbody rBody_G = collision.gameObject.GetComponent<Rigidbody>(); 
+            rBody_G.isKinematic = true; //turn grabbee's rbody into kinematic rbody
         }
-        Rigidbody rBody_G = collision.gameObject.GetComponent<Rigidbody>(); 
-        rBody_G.isKinematic = true; //turn grabbee's rbody into kinematic rbody
         collision.transform.SetParent(transform, true); //set it as my child
         collision.transform.position = transform.position; //position it at my origin
         collision.transform.localPosition = 2*targetDirection; //move it out to the end of the correct limb
@@ -274,19 +274,22 @@ public class CreatureBehaviour : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Pick Up"))
         {
-            Destroy(collision.gameObject.GetComponent<Rotator>()); //stop dead food from rotating 
+            collision.gameObject.GetComponent<Rotator>().enabled = false; //stop dead food from rotating by disabling rotator script
         }
-        Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
-        rBody_S.isKinematic = true; //turn the dead rbody into kinematic rbody
-        collision.transform.parent = null; //detach it from any parent
-        collision.gameObject.tag = "Inert"; //tag it as inert
-        collision.gameObject.layer = 8; //add it to inert raycast layer
-        //do this also to all children
-        foreach (Transform child in collision.transform)
+        else 
         {
-            child.gameObject.tag = "Inert";
-            child.gameObject.layer = 8;
+            Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
+            rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
+            //tag all child objects inert
+            foreach (Transform child in collision.transform)
+            {
+                child.gameObject.tag = "Inert";
+                child.gameObject.layer = 8;
+            }
         }
+        collision.gameObject.tag = "Inert"; //tag object itself as inert
+        collision.gameObject.layer = 8; //add it to inert raycast layer
+        collision.transform.parent = null; //detach collision object from any parent
         //change colour of entire object
         Renderer[] children;
         children = collision.gameObject.GetComponentsInChildren<Renderer>();
