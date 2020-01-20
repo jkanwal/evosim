@@ -272,11 +272,8 @@ public class CreatureBehaviour : MonoBehaviour
     //Function that defines stinging behaviour
     void Sting(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Pick Up"))
-        {
-            collision.gameObject.GetComponent<Rotator>().enabled = false; //stop dead food from rotating by disabling rotator script
-        }
-        else 
+        //things to do only to creatures
+        if (collision.gameObject.tag != "Pick Up")
         {
             Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
             rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
