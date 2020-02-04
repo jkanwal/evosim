@@ -68,9 +68,6 @@ public class RunSim : MonoBehaviour
                 WriteGenome(newbaby);
             }
 
-            //Spawn initial food in random locations
-            SpawnFood(x0, z0, foodAmount);
-
             //advance to next patch location
             if (i % 10 == 9)
             {
@@ -93,6 +90,27 @@ public class RunSim : MonoBehaviour
     {
         Ticks += 1; //count up a Tick at each physics update
 
+        //Spawn food halfway through a generation
+        if (Ticks == resetRate/2)
+        {
+            x0 = 0f;
+            z0 = 0f;
+            for (var i = 0; i < patchNum; i++)
+            {
+                SpawnFood(x0, z0, foodAmount);
+                //advance to next patch location
+                if (i % 10 == 9)
+                {
+                    z0 = -(xzLim * 3) * (i+1)/10;
+                    x0 = 0f;
+                }
+                else
+                {
+                    x0 += xzLim * 3;
+                } 
+            }
+        }
+
         //Start a new generation after number of ticks reaches resetRate
         if (Ticks > resetRate)
         {
@@ -109,21 +127,6 @@ public class RunSim : MonoBehaviour
             }
         }  
     }
-
-    // Update is called once per frame
-    /*
-    void Update()
-    {
-        
-        //Constantly add new food at some slow rate
-        float rand = Random.value;
-        if (rand < foodProb)
-        {
-            Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
-            Instantiate(FoodPrefab, position, Quaternion.identity);
-        }
-    }
-    */
 
     //Function to create the next generation:
     //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
@@ -219,7 +222,6 @@ public class RunSim : MonoBehaviour
                     newbaby.transform.SetParent(arenaList[i].transform, true);
                     WriteGenome(newbaby);
                 }
-                SpawnFood(x0, z0, foodAmount); //Spawn initial food in patch
                 //advance to next patch location
                 if (i % 10 == 9)
                 {
@@ -267,7 +269,6 @@ public class RunSim : MonoBehaviour
                     newbaby.SetActive(true); //re-activate the creature
                     WriteGenome(newbaby);
                 }
-                SpawnFood(x0, z0, foodAmount); //Spawn initial food in patch
                 n += creatureNum; //advance sliding window in newList
                 //advance to next patch location
                 if (k % 10 == 9)
