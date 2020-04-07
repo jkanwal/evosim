@@ -161,11 +161,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c21f3c1148da6c4aa6e72e9c11b71ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LegFunction: 010000000100000001000000020000000000000000000000
+  LegFunction: 010000000200000000000000000000000000000000000000
   minSpeed: 10
   maxSpeed: 50
   rotationRange: 120
-  GrabberPref: 0.5
+  GrabFood: 0.01
+  GrabCreature: 0.01
+  StingFood: 0.01
+  StingCreature: 0.01
 --- !u!114 &8301962160799670011
 MonoBehaviour:
   m_ObjectHideFlags: 0

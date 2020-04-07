@@ -157,22 +157,19 @@ MonoBehaviour:
     type: 3}
   genome: {fileID: 0}
   creatureBehaviour: {fileID: 0}
-  writepath: Assets/Data/data.csv
-  global: 1
-  rHigh: 1
-  patchNum: 25
+  writepath: Assets/Data/data_LC_LR_03_04.csv
+  global: 0
+  rHigh: 0
+  patchNum: 100
   creatureNum: 12
   foodAmount: 24
   foodProb: 0.01
   mutationRate: 0.01
   resetRate: 500
-  genNum: 10
+  genNum: 500
   arenaSize: 30
   minimumHeight: 2
   maximumHeight: 7
-  minSpeed: 10
-  maxSpeed: 50
-  maxRotationRange: 180
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0

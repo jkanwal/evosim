@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class Genome : MonoBehaviour
 {
     //Limb function genes for Legs 1 through 6 (if 0, nothing; if 1, grabber; if 2, stinger)
-    public int[] LegFunction = { 1, 0, 0, 0, 0, 0 };
+    public int[] LegFunction = { 1, 2, 0, 0, 0, 0 };
 
     //Motion genes
     public float minSpeed = 10f;
@@ -14,9 +14,10 @@ public class Genome : MonoBehaviour
     public float rotationRange = 120f;
 
     //Behaviour genes
-    public float GrabberPref = 0.5f; //prefers grabber over stinger if >= 0.5
-    //public float GrabberBehaviour = 0.5f; //goes for other creatures over food with this probability
-    //public float StingerBehaviour = 0.5f; //goes for other creatures over food with this probability
+    public float GrabFood = 0.01f; //goes for food with the grabber this probability
+    public float GrabCreature = 0.01f; //goes for other creatures with the grabber with this probability
+    public float StingFood = 0.01f; //goes for food with the stinger with this probability
+    public float StingCreature = 0.01f; //goes for other creatures with the stinger with this probability
 
 }
               

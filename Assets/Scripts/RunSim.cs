@@ -48,7 +48,7 @@ public class RunSim : MonoBehaviour
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
-        WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabberPref");
+        WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabFood, GrabCreature, StingFood, StingCreature");
 
         //Spawn patches (arenas)
         x0 = 0f;
@@ -294,27 +294,53 @@ public class RunSim : MonoBehaviour
         //if parent == null, do nothing (keep default gene values). Else...
         if (parent != null)
         {
-            //copy parent's grabber pref (with chance of mutation)
-            float rand = Random.value;
-            if (rand <= mutationRate)
+            //copy parent's grab & sting behaviours (with chance of mutation)
+            float rand1 = Random.value;
+            if (rand1 <= mutationRate)
             {
-                newbaby.GetComponent<Genome>().GrabberPref = Random.value;
-                Debug.Log("Mutation!");
+                newbaby.GetComponent<Genome>().GrabFood = Random.value;
             }
             else
             {
-                newbaby.GetComponent<Genome>().GrabberPref = parent.GetComponent<Genome>().GrabberPref;
+                newbaby.GetComponent<Genome>().GrabFood = parent.GetComponent<Genome>().GrabFood;
             }
+            float rand2 = Random.value;
+            if (rand2 <= mutationRate)
+            {
+                newbaby.GetComponent<Genome>().GrabCreature = Random.value;
+            }
+            else
+            {
+                newbaby.GetComponent<Genome>().GrabCreature = parent.GetComponent<Genome>().GrabCreature;
+            }
+            float rand3 = Random.value;
+            if (rand3 <= mutationRate)
+            {
+                newbaby.GetComponent<Genome>().StingFood = Random.value;
+            }
+            else
+            {
+                newbaby.GetComponent<Genome>().StingFood = parent.GetComponent<Genome>().StingFood;
+            }
+            float rand4 = Random.value;
+            if (rand4 <= mutationRate)
+            {
+                newbaby.GetComponent<Genome>().StingCreature = Random.value;
+            }
+            else
+            {
+                newbaby.GetComponent<Genome>().StingCreature = parent.GetComponent<Genome>().StingCreature;
+            }
+
             //copy parent's leg functions (with chance of mutation at each leg)
             int[] LegGenes = newbaby.GetComponent<Genome>().LegFunction;
             int[] ParentLegGenes = parent.GetComponent<Genome>().LegFunction;
             for (var i = 0; i < LegGenes.Length; i++)
             {
-                float rand4 = Random.value;
-                if (rand4 <= mutationRate)
+                float rand5 = Random.value;
+                if (rand5 <= mutationRate)
                 {
                     LegGenes[i] = Random.Range(0, 3);
-                    Debug.Log("Mutation!");
                 }
                 else
                 {
@@ -330,13 +356,16 @@ public class RunSim : MonoBehaviour
     void WriteGenome(GameObject creature)
     {
         string ArenaName = creature.transform.parent.name;
-        string grabPref = creature.GetComponent<Genome>().GrabberPref.ToString();
+        string grabFood = creature.GetComponent<Genome>().GrabFood.ToString();
+        string grabCreat = creature.GetComponent<Genome>().GrabCreature.ToString();
+        string stingFood = creature.GetComponent<Genome>().StingFood.ToString();
+        string stingCreat = creature.GetComponent<Genome>().StingCreature.ToString();
         int[] LegGenes = creature.GetComponent<Genome>().LegFunction;
         int[] SGList = CountSG(LegGenes);
         string grabberNum = SGList[0].ToString();
         string stingerNum = SGList[1].ToString();
         //write new creature's genome data to file
-        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabPref;
+        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabFood + "," + grabCreat + "," + stingFood + "," + stingCreat;
         WriteData(genomeData);
     }
 

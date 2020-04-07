@@ -28,8 +28,10 @@ public class CreatureBehaviour : MonoBehaviour
     public float raycastLimit = 5f;
     private Vector3 target;
     private Vector3 targetDirection;
-    private float grabPref;
-    //private Vector3 offset = new Vector3(0f, 2f, 0f);
+    private float grabFood;
+    private float grabCreature;
+    private float stingFood;
+    private float stingCreature;
     public int releaseRate = 100;
     private List<GameObject> Grabbees = new List<GameObject>();
     private List<Vector3> TargetDirections = new List<Vector3>();
@@ -55,7 +57,10 @@ public class CreatureBehaviour : MonoBehaviour
         minSpeed = gameObject.GetComponent<Genome>().minSpeed;
         maxSpeed = gameObject.GetComponent<Genome>().maxSpeed;
         rotationRange = gameObject.GetComponent<Genome>().rotationRange;
-        grabPref = gameObject.GetComponent<Genome>().GrabberPref;
+        grabFood = gameObject.GetComponent<Genome>().GrabFood;
+        grabCreature = gameObject.GetComponent<Genome>().GrabCreature;
+        stingFood = gameObject.GetComponent<Genome>().StingFood;
+        stingCreature = gameObject.GetComponent<Genome>().StingCreature;
 
         //Get Rigid body component just once at Start, as this is an expensive operation
         rBody = GetComponent<Rigidbody>();
@@ -154,21 +159,10 @@ public class CreatureBehaviour : MonoBehaviour
         //Else, check my raycasts and target if something found, otherwise move randomly
         else
         {
-            List<Vector3> GrabHits = new List<Vector3>();
+            List<RaycastHit> StingHits = new List<RaycastHit>();
+            List<RaycastHit> GrabHits = new List<RaycastHit>();
             List<Vector3> GrabTargetDirections = new List<Vector3>();
-            List<Vector3> StingHits = new List<Vector3>();
-            if (GrabDirections.Any())
-            {
-                foreach (Vector3 direction in GrabDirections)
-                {
-                    RaycastHit hit;
-                    if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
-                    {
-                        GrabHits.Add(hit.point);
-                        GrabTargetDirections.Add(direction);
-                    }
-                }
-            }
+            //first check if there are any sting targets, and get the closest one
             if (StingDirections.Any())
             {
                 foreach (Vector3 direction in StingDirections)
@@ -176,41 +170,79 @@ public class CreatureBehaviour : MonoBehaviour
                     RaycastHit hit;
                     if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
                     {
-                        StingHits.Add(hit.point);
+                        StingHits.Add(hit);
                     }
                 }
-            }
-            if (GrabHits.Any() && !StingHits.Any())
-            {
-                //Find closest point in Grab List & set as target
-                target = GetClosestHitPoint(GrabHits);
-                targetDirection = GrabTargetDirections[GrabHits.IndexOf(target)];
-                gameObject.tag = "GrabTargeting";
-            }
-            else if (!GrabHits.Any() && StingHits.Any())
-            {
-                //Find closest point in Sting List & set as target
-                target = GetClosestHitPoint(StingHits);
-                gameObject.tag = "StingTargeting";
-            }
-            else if (GrabHits.Any() && StingHits.Any())
-            {
-                //depends on genome grabber preference
-                if (grabPref >= 0.5)
+                if (StingHits.Count > 0) 
                 {
-                    target = GetClosestHitPoint(GrabHits);
-                    targetDirection = GrabTargetDirections[GrabHits.IndexOf(target)];
-                    gameObject.tag = "GrabTargeting";
-                }
-                else
+                    RaycastHit targetHit = GetClosestHitPoint(StingHits);
+                    //if the closest sting target is food, go for it with probability [stingFood]
+                    if (targetHit.transform.tag == "Pick Up")
+                    {
+                        float rand = Random.value;
+                        if (rand <= stingFood)
+                        {
+                            target = targetHit.point;
+                            gameObject.tag = "StingTargeting";
+                        }
+                    }
+                    //if the closest sting target is a creature, go for it with probability [stingCreature]
+                    else if (targetHit.transform.tag == "Creature" || targetHit.transform.tag == "Grabbed")
+                    {
+                        float rand = Random.value;
+                        if (rand <= stingCreature)
+                        {
+                            target = targetHit.point;
+                            gameObject.tag = "StingTargeting";
+                        }
+                    }
+                }   
+            }
+            //if I'm not now sting targeting, check for grab targets, and get the closest one
+            if (gameObject.tag != "StingTargeting")
+            {
+                if (GrabDirections.Any())
                 {
-                    target = GetClosestHitPoint(StingHits);
-                    gameObject.tag = "StingTargeting";
+                    foreach (Vector3 direction in GrabDirections)
+                    {
+                        RaycastHit hit;
+                        if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
+                        {
+                            GrabHits.Add(hit);
+                            GrabTargetDirections.Add(direction);
+                        }
+                    }
+                    if (GrabHits.Count > 0) 
+                    {
+                        RaycastHit targetHit = GetClosestHitPoint(GrabHits);
+                        //if the closest grab target is food, go for it with probability [grabFood]
+                        if (targetHit.transform.tag == "Pick Up")
+                        {
+                            float rand = Random.value;
+                            if (rand <= grabFood)
+                            {
+                                target = targetHit.point;
+                                targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
+                                gameObject.tag = "GrabTargeting";
+                            }
+                        }
+                        //if the closest grab target is a creature, go for it with probability [grabCreature]
+                        else if (targetHit.transform.tag == "Creature" || targetHit.transform.tag == "Grabbed")
+                        {
+                            float rand = Random.value;
+                            if (rand <= grabCreature)
+                            {
+                                target = targetHit.point;
+                                targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
+                                gameObject.tag = "GrabTargeting";
+                            }
+                        }
+                    }    
                 }
             }
-            else
+            //If I'm not now grab targeting, continue with random motion
+            if (gameObject.tag != "GrabTargeting")
             {
-                //Move randomly if both lists empty
                 float speed = Random.Range(minSpeed, maxSpeed); //set a random speed for this time step
                 Vector3 randomDirection = new Vector3(0, Mathf.Sin(timeVar) * (rotationRange / 2), 0); //set a random angle to turn
                 timeVar += step;
@@ -297,21 +329,21 @@ public class CreatureBehaviour : MonoBehaviour
         gameObject.tag = "Creature"; //change my tag back to random motion
     }
 
-    //Function to find closest hit point to me
-    Vector3 GetClosestHitPoint(List<Vector3> hits)
+    //Function to find closest RaycastHit object to me
+    RaycastHit GetClosestHitPoint(List<RaycastHit> hits)
     {
-        Vector3 Closest = Vector3.zero;
+        RaycastHit closestHit = new RaycastHit();
         float minDist = Mathf.Infinity;
-        foreach (Vector3 hitp in hits)
+        foreach (RaycastHit hit in hits)
         {
-            float dist = (transform.position - hitp).sqrMagnitude;
+            float dist = (transform.position - hit.point).sqrMagnitude;
             if (dist < minDist)
             {
-                Closest = hitp;
+                closestHit = hit;
                 minDist = dist;
             }
         }
-        return Closest;
+        return closestHit;
     }
 
 }
