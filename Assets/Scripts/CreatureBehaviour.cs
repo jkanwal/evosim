@@ -7,10 +7,14 @@ using System.IO;
 public class CreatureBehaviour : MonoBehaviour
 {
 
-    //load in genome, materials, etc.
+    //load in genome, materials, public lists of food/creatures
     public Genome genome;
     public Material grabberColour;
     public Material stingerColour;
+    public List<GameObject> foodPoolList;
+    public List<GameObject> liveCreatureList; 
+    public List<GameObject> inertCreatureList; 
+
 
     //Declare variables for motion
     private float timeVar = 0;

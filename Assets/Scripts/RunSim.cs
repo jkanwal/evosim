@@ -17,7 +17,7 @@ public class RunSim : MonoBehaviour
     //Simulation parameters (which can be altered before a run)
     public bool global = true; //Global competetion between creatures? (if false, Local competiton)
     public bool rHigh = true; //High relatedness within a patch? (if false, Low relatedness)
-    public int patchNum = 100; //number patches per generation
+    public int patchNum = 10; //number patches per generation
     public int creatureNum = 12; //number creatures per patch
     public int foodAmount = 24; //starting amount of food per patch
     public float foodProb = 0.01f; //rate of spontaneous food production in patch
@@ -35,9 +35,14 @@ public class RunSim : MonoBehaviour
     private float z0;
     private float xzLim;
     private GameObject[] arenaList; //array of arenas
-    //private GameObject[] poolList; //pooling list for creatures 
-    //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
+
+    // Public lists accessible by the CreatureBehaviour script attached to each creature
+    public List<GameObject> foodPoolList = new List<GameObject>(); //create empty pooling list for food 
+    public List<GameObject> liveCreatureList = new List<GameObject>(); //create empty list for live creatures 
+
+    public List<GameObject> inertCreatureList = new List<GameObject>(); //create empty list for inert creatures 
+    
 
 
     // Start is called before the first frame update
@@ -59,14 +64,22 @@ public class RunSim : MonoBehaviour
             GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
             arena.name = "Arena" + i.ToString();
 
-
-            //Spawn initial creatures, each with only 1 grabber
+            //Spawn 1st gen creatures
             for (var j = 0; j < creatureNum; j++)
             {
-                GameObject newbaby = CreateCreature(x0, z0);
-                newbaby.transform.SetParent(arena.transform, true);
+                GameObject newbaby = CreateCreature(x0, z0); //spawn creature
+                newbaby.transform.SetParent(arena.transform, true); //set current arena as its parent
+                liveCreatureList.Add(newbaby); //add creatures to live list 
                 WriteGenome(newbaby);
             }
+
+            //Spawn initial food and disable
+            for (var k = 0; k < foodAmount; k++)
+                {
+                    GameObject newfood = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity); //spawn all food at zero location (will change this later)
+                    newfood.SetActive(false);
+                    foodPoolList.Add(newfood); //add it to the pooling list
+                }
 
             //advance to next patch location
             if (i % 10 == 9)
@@ -95,9 +108,17 @@ public class RunSim : MonoBehaviour
         {
             x0 = 0f;
             z0 = 0f;
+            //spawn food in each patch
             for (var i = 0; i < patchNum; i++)
             {
-                SpawnFood(x0, z0, foodAmount);
+                //re-activate food from pooling list
+                for (var j = 0; j < foodAmount; j++)
+                {
+                    Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
+                    GameObject newfood = GetPooledObject(foodPoolList);
+                    newfood.transform.position = position;
+                    newfood.SetActive(true);
+                }
                 //advance to next patch location
                 if (i % 10 == 9)
                 {
@@ -133,21 +154,33 @@ public class RunSim : MonoBehaviour
     //Then repopulates the patches in one of 2 ways (High or Low relatedness)
     void NewGeneration(bool global, bool rHigh)
     {
-        string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
 
-        //Global competition: Add all non-inert creatures to parentList, then rank and clip the list
+        //Disable all food in the pool list. If a list item is null, create a new piece of food in its place
+        for (var f = 0; f < foodPoolList.Count; f++)
+        {
+            if (foodPoolList[f] == null) 
+            {
+                GameObject newfood = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity); //spawn piece of food at zero location
+                newfood.SetActive(false);
+                foodPoolList[f] = newfood;
+            }
+            else
+            {
+                foodPoolList[f].SetActive(false);
+            }
+        }
+        
+        //Global competition: 
+        //First go through live creature listDetach & disable all creatures, add non-inert creatures to parentList, then rank and clip the list
         if (global == true)
         {
-            foreach (string tag in creatureTags)
+            foreach (GameObject creature in liveCreatureList)
             {
-                GameObject[] creatureList0 = GameObject.FindGameObjectsWithTag(tag);
-                foreach (GameObject creature in creatureList0)
+                creature.transform.parent = null; //detach creature from all parents (arena and other creature if it was grabbed)
+                creature.SetActive(false); //disable creature
+                //if creature is non-inert (i.e. alive in patch)...
+                if (creature.CompareTag("Creature") || creature.CompareTag("Grabbed") || creature.CompareTag("GrabTargeting") || creature.CompareTag("StingTargeting"))
                 {
-                    if (tag == "Grabbed")
-                    {
-                        creature.transform.parent = null; //if it was grabbed, detach it from parent
-                    }
-                    creature.tag = "OldGeneration"; //tag it to be disabled
                     parentList.Add(creature); //add to parentList
                 }
             }
@@ -167,23 +200,21 @@ public class RunSim : MonoBehaviour
         { 
             foreach (GameObject arena in arenaList)
             {
-                //first make list of non-inert creatures left in patch
-                List<GameObject> creatureList = new List<GameObject>(); //create empty list 
+                List<GameObject> creatureList = new List<GameObject>(); //create empty list for non-inert creatures in patch
                 foreach (Transform child in arena.transform)
                 {
-                    if (creatureTags.Contains(child.tag)) //if child has a non-inert tag...
+                    child.parent = null; //detach creature from all parents (arena and other creature if it was grabbed)
+                    child.gameObject.SetActive(false); //disable creature
+                    //if child has a non-inert tag...
+                    if (child.CompareTag("Creature") || child.CompareTag("Grabbed") || child.CompareTag("GrabTargeting") || child.CompareTag("StingTargeting"))
                     {
-                        if (child.tag == "Grabbed")
-                        {
-                            child.transform.parent = arena.transform; //if it was grabbed by a creature, change parent back to arena
-                        }
                         creatureList.Add(child.gameObject); //add to creatureList
                     }
                 }
-                //Now go through creatureList and find highest scorer (choose randomly if tie)
-                int maxPoints = 0;
+                //Now go through creatureList and find highest scorer (choose randomly if tie)                
                 int rand = Random.Range(0, creatureList.Count);
                 GameObject highScorer = creatureList[rand];
+                int maxPoints = highScorer.GetComponent<CreatureBehaviour>().points;
                 foreach (GameObject creature in creatureList)
                 {
                     int points = creature.GetComponent<CreatureBehaviour>().points; //get the creature's points count
@@ -192,7 +223,6 @@ public class RunSim : MonoBehaviour
                         highScorer = creature;
                         maxPoints = points;
                     }
-                    creature.tag = "OldGeneration"; //Tag it to be disabled
                 }
                 parentList.Add(highScorer);
                 Debug.Log("High score: " + maxPoints); 
@@ -200,12 +230,8 @@ public class RunSim : MonoBehaviour
             Debug.Log("ParentsList: " + parentList.Count + " items");
         }
 
-        //Clear out old creatures & food
-        DisableTag("OldGeneration"); //Disable previous non-inert creatures
-        DestroyTag("Inert"); //Destroy inert creatures
-        DestroyTag("Pick Up"); //Destroy previous food 
-
         //Repopulate the patches for the next generation:
+        liveCreatureList.Clear(); //empty Creature list for next gen
         Generation += 1; //begin the next generation!
         x0 = 0f; //starting coordinates for patch 0
         z0 = 0f;
@@ -220,6 +246,7 @@ public class RunSim : MonoBehaviour
                 {
                     GameObject newbaby = CreateCreature(x0, z0, parent);
                     newbaby.transform.SetParent(arenaList[i].transform, true);
+                    liveCreatureList.Add(newbaby); //add to live creature list
                     WriteGenome(newbaby);
                 }
                 //advance to next patch location
@@ -267,6 +294,7 @@ public class RunSim : MonoBehaviour
                     newbaby.transform.position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim)); //change the position to be in the current patch
                     newbaby.transform.SetParent(arenaList[k].transform, true); //parent the creature to its arena
                     newbaby.SetActive(true); //re-activate the creature
+                    liveCreatureList.Add(newbaby); //add to live creature list
                     WriteGenome(newbaby);
                 }
                 n += creatureNum; //advance sliding window in newList
@@ -282,7 +310,7 @@ public class RunSim : MonoBehaviour
                 }
             }
         }
-        parentList = new List<GameObject>(); //empty the parentList for the next generation
+        parentList.Clear(); //empty the parentList for the next generation
         Debug.Log("Empty List: " + parentList.Count + " items");
     }
 
@@ -369,24 +397,21 @@ public class RunSim : MonoBehaviour
         WriteData(genomeData);
     }
 
-    //Function to spawn food
-    void SpawnFood(float x, float z, int foodAmount)
+    //Function to get an object from a poolList
+    GameObject GetPooledObject(List<GameObject> poolList) 
     {
-        for (var i = 0; i < foodAmount; i++)
+        for (int i = 0; i < poolList.Count; i++) 
         {
-            Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim));
-            Instantiate(FoodPrefab, position, Quaternion.identity);
-        }
-    }
-
-    //Function to destroy all objects with a specific tag
-    void DestroyTag(string tag)
-    {
-        var ThingList = GameObject.FindGameObjectsWithTag(tag);
-        foreach (GameObject thing in ThingList)
-        {
-            Destroy(thing);
-        }
+            if (!poolList[i].activeInHierarchy) 
+            {
+                GameObject newItem = poolList[i];
+                poolList.RemoveAt(i);
+                poolList.Insert(poolList.Count-1, newItem);
+                return newItem;
+            }
+        } 
+        Debug.Log("no inactive objects left in pool!");
+        return null;
     }
 
     //Function to disable all objects with a specific tag
