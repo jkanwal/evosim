@@ -161,14 +161,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c21f3c1148da6c4aa6e72e9c11b71ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LegFunction: 010000000200000000000000000000000000000000000000
+  LegFunction: 010000000200000001000000020000000000000000000000
   minSpeed: 10
   maxSpeed: 50
   rotationRange: 120
-  GrabFood: 0.01
-  GrabCreature: 0.01
-  StingFood: 0.01
-  StingCreature: 0.01
+  GrabFood: 0.5
+  GrabCreature: 0.5
+  StingFood: 0.5
+  StingCreature: 0.5
 --- !u!114 &8301962160799670011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -184,6 +184,10 @@ MonoBehaviour:
   genome: {fileID: 0}
   grabberColour: {fileID: 2100000, guid: 6eac181ce9bfbf44cbe77a31a0b5d1ac, type: 2}
   stingerColour: {fileID: 2100000, guid: de2e3ae470b5f514f94e2c7ca9d66319, type: 2}
+  foodPoolList: []
+  lostFoodList: []
+  liveCreatureList: []
+  inertCreatureList: []
   layerMask: 512
   raycastLimit: 15
   releaseRate: 5

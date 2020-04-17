@@ -10,6 +10,7 @@ public class RunSim : MonoBehaviour
     public GameObject ArenaPrefab;
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
+    public Material foodColour;
     public Genome genome;
     public CreatureBehaviour creatureBehaviour;
     public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
@@ -35,12 +36,11 @@ public class RunSim : MonoBehaviour
     private float z0;
     private float xzLim;
     private GameObject[] arenaList; //array of arenas
+    private List<GameObject> foodPoolList = new List<GameObject>(); //create empty pooling list for food 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
 
-    // Public lists accessible by the CreatureBehaviour script attached to each creature
-    public List<GameObject> foodPoolList = new List<GameObject>(); //create empty pooling list for food 
+    // Public lists accessible by the CreatureBehaviour script attached to each creature??
     public List<GameObject> liveCreatureList = new List<GameObject>(); //create empty list for live creatures 
-
     public List<GameObject> inertCreatureList = new List<GameObject>(); //create empty list for inert creatures 
     
 
@@ -155,21 +155,22 @@ public class RunSim : MonoBehaviour
     void NewGeneration(bool global, bool rHigh)
     {
 
-        //Disable all food in the pool list. If a list item is null, create a new piece of food in its place
+        //Disable all food in the pool list, and set it back to default values
         for (var f = 0; f < foodPoolList.Count; f++)
-        {
-            if (foodPoolList[f] == null) 
+        {   
+            GameObject food = foodPoolList[f];
+            food.SetActive(false); //disable
+            food.transform.parent = null; //detach from parent if it was grabbed
+            //if it was inert (stung)...
+            if (food.CompareTag("Inert"))
             {
-                GameObject newfood = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity); //spawn piece of food at zero location
-                newfood.SetActive(false);
-                foodPoolList[f] = newfood;
-            }
-            else
-            {
-                foodPoolList[f].SetActive(false);
+                food.tag = "Pick Up"; //set back to default tag
+                food.layer = 9; //add it back to food layer
+                Renderer rend = food.GetComponent<Renderer>();
+                rend.material = foodColour; //change back to default colour
             }
         }
-        
+
         //Global competition: 
         //First go through live creature listDetach & disable all creatures, add non-inert creatures to parentList, then rank and clip the list
         if (global == true)

@@ -9,9 +9,11 @@ public class CreatureBehaviour : MonoBehaviour
 
     //load in genome, materials, public lists of food/creatures
     public Genome genome;
+    //public RunSim runSim;
     public Material grabberColour;
     public Material stingerColour;
     public List<GameObject> foodPoolList;
+    public List<GameObject> lostFoodList;
     public List<GameObject> liveCreatureList; 
     public List<GameObject> inertCreatureList; 
 
@@ -71,6 +73,8 @@ public class CreatureBehaviour : MonoBehaviour
 
         Ticks = 0;
 
+        //runSim = GameObject.Find("RunSim").GetComponent<RunSim>(); //get debugging list from runsim
+
     }
 
     void FixedUpdate()
@@ -91,7 +95,7 @@ public class CreatureBehaviour : MonoBehaviour
                         {
                             points += 1; //get a point for digesting food!
                             //Grabbees.Remove(grabbee);
-                            Destroy(Grabbees[i]); //destroy grabbee
+                            Grabbees[i].SetActive(false); //disable digested grabbee
                             Grabbees.RemoveAt(i); //remove from Grabbee list
                             GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
                             TargetDirections.RemoveAt(i); //and remove it from the target directions list
@@ -293,6 +297,7 @@ public class CreatureBehaviour : MonoBehaviour
         TargetDirections.Add(targetDirection); //add grabbing limb direction to my list of grabbing limbs
         GrabDirections.Remove(targetDirection); //remove this direction from my list of directions to raycast in
         ReleaseTimes.Add(Ticks + releaseRate); //add Ticks count for when to release 
+        //If another creature grabbed...
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
             collision.gameObject.tag = "Grabbed"; //if the grabbee is not food, change its tag to 'Grabbed'
@@ -309,7 +314,7 @@ public class CreatureBehaviour : MonoBehaviour
     void Sting(Collision collision)
     {
         //things to do only to creatures
-        if (collision.gameObject.tag != "Pick Up")
+        if (!collision.gameObject.CompareTag("Pick Up"))
         {
             Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
             rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
