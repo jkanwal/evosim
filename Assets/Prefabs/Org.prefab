@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 703432653690645763}
   - component: {fileID: 703432653690645762}
   - component: {fileID: 703432653690645761}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Sphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -104,7 +104,7 @@ GameObject:
   - component: {fileID: 703432654380065367}
   - component: {fileID: 703432654380065370}
   - component: {fileID: 8301962160799670011}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Org
   m_TagString: Creature
   m_Icon: {fileID: 0}
@@ -161,14 +161,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c21f3c1148da6c4aa6e72e9c11b71ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LegFunction: 010000000200000001000000020000000000000000000000
+  LegFunction: 010000000200000000000000000000000000000000000000
   minSpeed: 10
   maxSpeed: 50
   rotationRange: 120
-  GrabFood: 0.5
-  GrabCreature: 0.5
-  StingFood: 0.5
-  StingCreature: 0.5
+  GrabFood: 0.01
+  GrabCreature: 0.01
+  StingFood: 0.01
+  StingCreature: 0.01
 --- !u!114 &8301962160799670011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,12 +182,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   genome: {fileID: 0}
+  creatureBehaviour: {fileID: 0}
   grabberColour: {fileID: 2100000, guid: 6eac181ce9bfbf44cbe77a31a0b5d1ac, type: 2}
   stingerColour: {fileID: 2100000, guid: de2e3ae470b5f514f94e2c7ca9d66319, type: 2}
-  foodPoolList: []
-  lostFoodList: []
-  liveCreatureList: []
-  inertCreatureList: []
   layerMask: 512
   raycastLimit: 15
   releaseRate: 5
@@ -204,7 +201,7 @@ GameObject:
   - component: {fileID: 703432654476161112}
   - component: {fileID: 703432654476161119}
   - component: {fileID: 703432654476161118}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -297,7 +294,7 @@ GameObject:
   - component: {fileID: 3285786515562705274}
   - component: {fileID: 4560007255978632986}
   - component: {fileID: 3854361957864100114}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: LegCollider
   m_TagString: Leg
   m_Icon: {fileID: 0}
@@ -389,7 +386,7 @@ GameObject:
   - component: {fileID: 8301835193031110211}
   - component: {fileID: 8301835193031110212}
   - component: {fileID: 8301835193031110213}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -482,7 +479,7 @@ GameObject:
   - component: {fileID: 8301835193381152210}
   - component: {fileID: 8301835193381152211}
   - component: {fileID: 8301835193381152212}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -575,7 +572,7 @@ GameObject:
   - component: {fileID: 8301835193704323759}
   - component: {fileID: 8301835193704323744}
   - component: {fileID: 8301835193704323745}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -668,7 +665,7 @@ GameObject:
   - component: {fileID: 8301835193858712681}
   - component: {fileID: 8301835193858712682}
   - component: {fileID: 8301835193858712683}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -761,7 +758,7 @@ GameObject:
   - component: {fileID: 8301835194444984655}
   - component: {fileID: 8301835194444984640}
   - component: {fileID: 8301835194444984641}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: Leg2
   m_TagString: Untagged
   m_Icon: {fileID: 0}

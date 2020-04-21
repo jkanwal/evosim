@@ -130,7 +130,7 @@ GameObject:
   m_Component:
   - component: {fileID: 727085161}
   - component: {fileID: 727085160}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: RunSim
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -156,19 +156,18 @@ MonoBehaviour:
   FoodPrefab: {fileID: 1362375701495828096, guid: 946afe776a197f7428d9ece02e901011,
     type: 3}
   foodColour: {fileID: 2100000, guid: 35e7132c063effc419ddc8ead561f1d9, type: 2}
-  creatureColour: {fileID: 0}
   genome: {fileID: 0}
   creatureBehaviour: {fileID: 0}
   writepath: Assets/Data/data.csv
   global: 0
   rHigh: 0
-  patchNum: 10
+  patchNum: 100
   creatureNum: 12
-  foodAmount: 24
+  foodAmount: 6
   foodProb: 0.01
   mutationRate: 0.01
   resetRate: 500
-  genNum: 10
+  genNum: 500
   arenaSize: 30
   minimumHeight: 2
   maximumHeight: 7

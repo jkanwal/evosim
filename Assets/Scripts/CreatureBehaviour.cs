@@ -10,6 +10,7 @@ public class CreatureBehaviour : MonoBehaviour
     //load in genome, materials, public lists of food/creatures
     public Genome genome;
     //public RunSim runSim;
+    public CreatureBehaviour creatureBehaviour;
     public Material grabberColour;
     public Material stingerColour;
 
@@ -74,44 +75,46 @@ public class CreatureBehaviour : MonoBehaviour
         Ticks = 0;
     }
 
-    void FixedUpdate()
+    void FixedUpdate() 
     {
         Ticks += 1; //count up a Tick at each physics update
-    }
-
-    
-    void Update() //things that don't need to be done at every physics update
-    {
-        //if I'm grabbing food, digest it and get a point after releaseRate amount of time
-        //iterate backwards as we may be deleting elements from the list
-        if (Grabbees.Count > 0)
-        {
-            for (int i = Grabbees.Count - 1; i >= 0; i--)
-            {
-                if (Grabbees[i] != null)
-                {
-                    if (Grabbees[i].CompareTag("Pick Up"))
-                    {
-                        if (Ticks > ReleaseTimes[i])
-                        {
-                            points += 1; //get a point for digesting food!
-                            Grabbees[i].SetActive(false); //disable digested grabbee
-                            Grabbees.RemoveAt(i); //remove from Grabbee list
-                            GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
-                            TargetDirections.RemoveAt(i); //and remove it from the target directions list
-                            ReleaseTimes.RemoveAt(i); //also remove the corresponding release time
-                        }
-                    }
-                }
-                else
-                { 
-                    Grabbees.RemoveAt(i);
-                } 
-            }
-        }
 
         MotionController(); //defines all the different conditions for different types of motion
+    }
 
+    void Update()
+    {
+        //Do stuff only every 15 ticks, to save on CPU
+        if (Ticks % 15 == 0) 
+        {
+            //if I'm grabbing food, digest it and get a point after releaseRate amount of time
+            //iterate backwards as we may be deleting elements from the list
+            if (Grabbees.Count > 0)
+            {
+                for (int i = Grabbees.Count - 1; i >= 0; i--)
+                {
+                    if (Grabbees[i] != null)
+                    {
+                        if (Grabbees[i].CompareTag("Pick Up"))
+                        {
+                            if (Ticks > ReleaseTimes[i])
+                            {
+                                points += 1; //get a point for digesting food!
+                                Grabbees[i].SetActive(false); //disable digested grabbee
+                                Grabbees.RemoveAt(i); //remove from Grabbee list
+                                GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
+                                TargetDirections.RemoveAt(i); //and remove it from the target directions list
+                                ReleaseTimes.RemoveAt(i); //also remove the corresponding release time
+                            }
+                        }
+                    }
+                    else
+                    { 
+                        Grabbees.RemoveAt(i);
+                    } 
+                }
+            }
+        }
     }
 
 
@@ -151,92 +154,95 @@ public class CreatureBehaviour : MonoBehaviour
             float speed = Random.Range(minSpeed, maxSpeed); //set a random speed between the min and max
             transform.position = Vector3.MoveTowards(transform.position, target, Time.fixedDeltaTime * speed);
         }
-        //Else, check my raycasts and target if something found, otherwise move randomly
+        //Else, check my raycasts every 10 ticks and target if something found, otherwise move randomly
         else
         {
-            List<RaycastHit> StingHits = new List<RaycastHit>();
-            List<RaycastHit> GrabHits = new List<RaycastHit>();
-            List<Vector3> GrabTargetDirections = new List<Vector3>();
-            //first check if there are any sting targets, and get the closest one
-            if (StingDirections.Any())
+            if (Ticks % 10 == 0) 
             {
-                foreach (Vector3 direction in StingDirections)
+                List<RaycastHit> StingHits = new List<RaycastHit>();
+                List<RaycastHit> GrabHits = new List<RaycastHit>();
+                List<Vector3> GrabTargetDirections = new List<Vector3>();
+                //first check if there are any sting targets, and get the closest one
+                if (StingDirections.Any())
                 {
-                    RaycastHit hit;
-                    if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
-                    {
-                        StingHits.Add(hit);
-                    }
-                }
-                if (StingHits.Count > 0) 
-                {
-                    RaycastHit targetHit = GetClosestHitPoint(StingHits);
-                    //if the closest sting target is food, go for it with probability [stingFood]
-                    if (targetHit.transform.CompareTag("Pick Up"))
-                    {
-                        float rand = Random.value;
-                        if (rand <= stingFood)
-                        {
-                            target = targetHit.point;
-                            gameObject.tag = "StingTargeting";
-                        }
-                    }
-                    //if the closest sting target is a creature, go for it with probability [stingCreature]
-                    else if (targetHit.transform.CompareTag("Creature") || targetHit.transform.CompareTag("Grabbed"))
-                    {
-                        float rand = Random.value;
-                        if (rand <= stingCreature)
-                        {
-                            target = targetHit.point;
-                            gameObject.tag = "StingTargeting";
-                        }
-                    }
-                }   
-            }
-            //if I'm not now sting targeting, check for grab targets, and get the closest one
-            if (!gameObject.CompareTag("StingTargeting"))
-            {
-                if (GrabDirections.Any())
-                {
-                    foreach (Vector3 direction in GrabDirections)
+                    foreach (Vector3 direction in StingDirections)
                     {
                         RaycastHit hit;
                         if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
                         {
-                            GrabHits.Add(hit);
-                            GrabTargetDirections.Add(direction);
+                            StingHits.Add(hit);
                         }
                     }
-                    if (GrabHits.Count > 0) 
+                    if (StingHits.Count > 0) 
                     {
-                        RaycastHit targetHit = GetClosestHitPoint(GrabHits);
-                        //if the closest grab target is food, go for it with probability [grabFood]
+                        RaycastHit targetHit = GetClosestHitPoint(StingHits);
+                        //if the closest sting target is food, go for it with probability [stingFood]
                         if (targetHit.transform.CompareTag("Pick Up"))
                         {
                             float rand = Random.value;
-                            if (rand <= grabFood)
+                            if (rand <= stingFood)
                             {
                                 target = targetHit.point;
-                                targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
-                                gameObject.tag = "GrabTargeting";
+                                gameObject.tag = "StingTargeting";
                             }
                         }
-                        //if the closest grab target is a creature, go for it with probability [grabCreature]
-                        else if (targetHit.transform.CompareTag("Creature") || targetHit.transform.CompareTag("Grabbed"))
+                        //if the closest sting target is a creature, go for it with probability [stingCreature]
+                        else
                         {
                             float rand = Random.value;
-                            if (rand <= grabCreature)
+                            if (rand <= stingCreature)
                             {
                                 target = targetHit.point;
-                                targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
-                                gameObject.tag = "GrabTargeting";
+                                gameObject.tag = "StingTargeting";
                             }
                         }
-                    }    
+                    }   
+                }
+                //if I'm not now sting targeting, check for grab targets, and get the closest one
+                if (!gameObject.CompareTag("StingTargeting"))
+                {
+                    if (GrabDirections.Any())
+                    {
+                        foreach (Vector3 direction in GrabDirections)
+                        {
+                            RaycastHit hit;
+                            if (Physics.Raycast(transform.position, direction, out hit, raycastLimit, layerMask))
+                            {
+                                GrabHits.Add(hit);
+                                GrabTargetDirections.Add(direction);
+                            }
+                        }
+                        if (GrabHits.Count > 0) 
+                        {
+                            RaycastHit targetHit = GetClosestHitPoint(GrabHits);
+                            //if the closest grab target is food, go for it with probability [grabFood]
+                            if (targetHit.transform.CompareTag("Pick Up"))
+                            {
+                                float rand = Random.value;
+                                if (rand <= grabFood)
+                                {
+                                    target = targetHit.point;
+                                    targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
+                                    gameObject.tag = "GrabTargeting";
+                                }
+                            }
+                            //if the closest grab target is a creature, go for it with probability [grabCreature]
+                            else if (targetHit.transform.CompareTag("Creature") || targetHit.transform.CompareTag("Grabbed"))
+                            {
+                                float rand = Random.value;
+                                if (rand <= grabCreature)
+                                {
+                                    target = targetHit.point;
+                                    targetDirection = GrabTargetDirections[GrabHits.IndexOf(targetHit)];
+                                    gameObject.tag = "GrabTargeting";
+                                }
+                            }
+                        }    
+                    }
                 }
             }
-            //If I'm not now grab targeting, continue with random motion
-            if (!gameObject.CompareTag("GrabTargeting"))
+            //If I'm not now grab or sting targeting, continue with random motion
+            if (!gameObject.CompareTag("GrabTargeting") && !gameObject.CompareTag("StingTargeting"))
             {
                 float speed = Random.Range(minSpeed, maxSpeed); //set a random speed for this time step
                 Vector3 randomDirection = new Vector3(0, Mathf.Sin(timeVar) * (rotationRange / 2), 0); //set a random angle to turn
@@ -284,20 +290,24 @@ public class CreatureBehaviour : MonoBehaviour
         TargetDirections.Add(targetDirection); //add grabbing limb direction to my list of grabbing limbs
         GrabDirections.Remove(targetDirection); //remove this direction from my list of directions to raycast in
         ReleaseTimes.Add(Ticks + releaseRate); //add Ticks count for when to release 
+        collision.transform.SetParent(transform, true); //set it as my child
+        collision.transform.position = transform.position; //position it at my origin
+        collision.transform.localPosition = 2*targetDirection; //move it out to the end of the correct limb
         //If another creature is grabbed...
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
             collision.gameObject.tag = "Grabbed"; //change its tag
-            //runSim.liveList.Remove(collision.gameObject); //remove it from liveList
-            //runSim.sterileList.Add(collision.gameObject); //add it to sterileList
             Rigidbody rBody_G = collision.gameObject.GetComponent<Rigidbody>(); 
             rBody_G.isKinematic = true; //turn grabbee's rbody into kinematic rbody
-            points += collision.gameObject.GetComponent<CreatureBehaviour>().points; //add its points to mine
+            int points_G = collision.gameObject.GetComponent<CreatureBehaviour>().points; //get grabbee's points value
+            points += points_G; //add its points to mine
             collision.gameObject.GetComponent<CreatureBehaviour>().points = 0; //and set its points to zero as it's lost its chance to reproduce
-        }
-        collision.transform.SetParent(transform, true); //set it as my child
-        collision.transform.position = transform.position; //position it at my origin
-        collision.transform.localPosition = 2*targetDirection; //move it out to the end of the correct limb
+            Renderer[] children = collision.gameObject.GetComponentsInChildren<Renderer>();
+            foreach (Renderer rend in children)
+            {
+                rend.material = grabberColour;
+            }
+        }  
         gameObject.tag = "Creature"; //change my tag back to random motion
     }
 
@@ -307,8 +317,6 @@ public class CreatureBehaviour : MonoBehaviour
         //things to do only to creatures
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
-            //runSim.liveList.Remove(collision.gameObject); //remove it from liveList
-            //runSim.sterileList.Add(collision.gameObject); //add it to sterileList
             Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
             rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
             //tag all child objects inert
@@ -318,7 +326,8 @@ public class CreatureBehaviour : MonoBehaviour
                 child.gameObject.layer = 8;
             }
             collision.gameObject.GetComponent<CreatureBehaviour>().points = 0; //set fitness value to zero as it's lost its chance to reproduce
-            collision.transform.parent = collision.transform.root; //detach collision object from immediate parents...reparent it to just the arena
+            Transform arenaTransform = collision.transform.root;
+            collision.transform.SetParent(arenaTransform); //detach collision object from immediate parents...reparent it to just the arena
         }
         else //things to do only to food
         {

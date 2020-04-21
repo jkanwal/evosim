@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class Genome : MonoBehaviour
 {
     //Limb function genes for Legs 1 through 6 (if 0, nothing; if 1, grabber; if 2, stinger)
-    public int[] LegFunction = { 1, 2, 0, 0, 0, 0 };
+    public int[] LegFunction = { 1, 0, 0, 0, 0, 0 };
 
     //Motion genes
     public float minSpeed = 10f;

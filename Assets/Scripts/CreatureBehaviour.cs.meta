@@ -3,7 +3,11 @@ guid: 0ac2ad158bc8cbd45a21314f81ae5b32
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - genome: {instanceID: 0}
+  - creatureBehaviour: {instanceID: 0}
+  - grabberColour: {fileID: 2100000, guid: 6eac181ce9bfbf44cbe77a31a0b5d1ac, type: 2}
+  - stingerColour: {fileID: 2100000, guid: de2e3ae470b5f514f94e2c7ca9d66319, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

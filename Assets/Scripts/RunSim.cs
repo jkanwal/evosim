@@ -11,7 +11,6 @@ public class RunSim : MonoBehaviour
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
     public Material foodColour;
-    public Material creatureColour;
     public Genome genome;
     public CreatureBehaviour creatureBehaviour;
     public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
@@ -33,6 +32,7 @@ public class RunSim : MonoBehaviour
     //Other global variables
     private int Ticks;
     private int Generation;
+    private bool food;
     private float x0;
     private float z0;
     private float xzLim;
@@ -93,15 +93,20 @@ public class RunSim : MonoBehaviour
 
         Generation = 0;
         Ticks = 0;
+        food = false;
     }
 
-    // Fixed Update is called at a set interval, and deals with the physics & tick advances
+    // Fixed Update is called at a set interval, and deals with the tick advances
     void FixedUpdate()
     {
         Ticks += 1; //count up a Tick at each physics update
+    }
 
+    //Update is used for everything else
+    void Update()
+    {
         //Spawn food halfway through a generation
-        if (Ticks == resetRate/2)
+        if (Ticks >= resetRate/2 && food == false) //Food comes in halfway through the generation
         {
             x0 = 0f;
             z0 = 0f;
@@ -127,6 +132,7 @@ public class RunSim : MonoBehaviour
                     x0 += xzLim * 3;
                 } 
             }
+            food = true; //so that it doesn't keep generating food
         }
 
         //Start a new generation after number of ticks reaches resetRate
@@ -142,6 +148,7 @@ public class RunSim : MonoBehaviour
             {
                 NewGeneration(global, rHigh); //runs the new generation method
                 Ticks = 0; //set Ticks back to 0 
+                food = false; //set food back to false, so it knows to generate the food halfway through next gen ticks
             }
         }  
     }
@@ -162,7 +169,7 @@ public class RunSim : MonoBehaviour
             if (food.CompareTag("Inert"))
             {
                 food.tag = "Pick Up"; //set back to default tag
-                food.layer = 9; //add it back to food layer
+                food.layer = 9; //add it back to target layer
                 Renderer rend = food.GetComponent<Renderer>();
                 rend.material = foodColour; //change back to default colour
             }
@@ -176,7 +183,6 @@ public class RunSim : MonoBehaviour
             //If creature is not grabbed or inert, add to parentlist0, otherwise destroy it
             if (!creature.CompareTag("Grabbed") && !creature.CompareTag("Inert"))
             {
-                //creature.SetActive(false); //disable creature
                 parentList0.Add(creature); //Add to potential parents list
             }
             else
@@ -186,7 +192,7 @@ public class RunSim : MonoBehaviour
             }
             creatureList.RemoveAt(c);
         }
-        
+
         //Global competition: Rank and clip parentList0
         if (global == true)
         {  
@@ -203,14 +209,15 @@ public class RunSim : MonoBehaviour
         //Local competition: Go through each patch and choose the single highest-scoring creature 
         else
         { 
+            GameObject dummy = new GameObject();
             foreach (GameObject arena in arenaList)
             {
                 int maxPoints = 0;
-                GameObject highScorer = new GameObject();
+                GameObject highScorer = dummy;
                 //look through non-destroyed top-level children of the arena (i.e. all non-grabbed or stung creatures), check for highest scorer
                 foreach (Transform child in arena.transform)
                 {
-                    if (child.gameObject.layer == 10) //check only children in creature layer (ignore walls, cameras, etc.)
+                    if (child.gameObject.layer == 9 && !child.CompareTag("Inert") && !child.CompareTag("Grabbed")) //check only children in target layer (ignore walls, cameras, etc.)
                     {
                         int points = child.gameObject.GetComponent<CreatureBehaviour>().points; //get the creature's points count
                         if (points > maxPoints)
@@ -227,6 +234,7 @@ public class RunSim : MonoBehaviour
                 parentList.Add(highScorer);
                 //Debug.Log("High score: " + maxPoints); 
             }
+            Destroy(dummy);
         }
 
         //Repopulate the patches for the next generation:
@@ -280,7 +288,7 @@ public class RunSim : MonoBehaviour
                 newList[j] = newList[randomIndex];
                 newList[randomIndex] = temp;
             }
-            Debug.Log("Clone List: " + newList.Count + " items");
+            //Debug.Log("Clone List: " + newList.Count + " items");
             //Now we sequentially grab createNum creatures at a time from the newList and place them in patches
             int n = 0;
             for (int k = 0; k < patchNum; k++)
@@ -307,7 +315,6 @@ public class RunSim : MonoBehaviour
             }
         }
 
-        //Destroy the remaining previous gen creatures, and clear parentList0 & parentList
         for (int p = parentList0.Count-1; p >= 0; p--)
         {   
             Destroy(parentList0[p]);
