@@ -12,10 +12,6 @@ public class CreatureBehaviour : MonoBehaviour
     //public RunSim runSim;
     public Material grabberColour;
     public Material stingerColour;
-    public List<GameObject> foodPoolList;
-    public List<GameObject> lostFoodList;
-    public List<GameObject> liveCreatureList; 
-    public List<GameObject> inertCreatureList; 
 
 
     //Declare variables for motion
@@ -52,6 +48,7 @@ public class CreatureBehaviour : MonoBehaviour
     void Start()
     {
         LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
+        
         //Assign leg colour based on whether it is a stinger or grabber
         int[] LegGenes = GetComponent<Genome>().LegFunction;
         for (int i = 1; i < 7; i++)
@@ -71,16 +68,20 @@ public class CreatureBehaviour : MonoBehaviour
         //Get Rigid body component just once at Start, as this is an expensive operation
         rBody = GetComponent<Rigidbody>();
 
+        //Access liveList and sterileList from RunSim script, so that this creature can be moved between lists if grabbed or stung
+        //runSim = GameObject.Find("RunSim").GetComponent<RunSim>(); //access the RunSim script
+
         Ticks = 0;
-
-        //runSim = GameObject.Find("RunSim").GetComponent<RunSim>(); //get debugging list from runsim
-
     }
 
     void FixedUpdate()
     {
         Ticks += 1; //count up a Tick at each physics update
+    }
 
+    
+    void Update() //things that don't need to be done at every physics update
+    {
         //if I'm grabbing food, digest it and get a point after releaseRate amount of time
         //iterate backwards as we may be deleting elements from the list
         if (Grabbees.Count > 0)
@@ -94,7 +95,6 @@ public class CreatureBehaviour : MonoBehaviour
                         if (Ticks > ReleaseTimes[i])
                         {
                             points += 1; //get a point for digesting food!
-                            //Grabbees.Remove(grabbee);
                             Grabbees[i].SetActive(false); //disable digested grabbee
                             Grabbees.RemoveAt(i); //remove from Grabbee list
                             GrabDirections.Add(TargetDirections[i]); //add the target direction back to grab directions
@@ -109,19 +109,6 @@ public class CreatureBehaviour : MonoBehaviour
                 } 
             }
         }
-                /* (Commented out, so keeping hold of other creatures for now)
-                //if I'm grabbing a creature, release it
-                else
-                {
-                    grabbee.transform.parent = null;
-                    Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
-                    rBody.isKinematic = false;
-                    rBody.detectCollisions = true;
-                    grabbee.tag = "Creature";
-                }
-                gameObject.tag = "Creature"; //reset my Grabbing tag
-                grabbee = null; //empty my grabbee variable
-                */
 
         MotionController(); //defines all the different conditions for different types of motion
 
@@ -185,7 +172,7 @@ public class CreatureBehaviour : MonoBehaviour
                 {
                     RaycastHit targetHit = GetClosestHitPoint(StingHits);
                     //if the closest sting target is food, go for it with probability [stingFood]
-                    if (targetHit.transform.tag == "Pick Up")
+                    if (targetHit.transform.CompareTag("Pick Up"))
                     {
                         float rand = Random.value;
                         if (rand <= stingFood)
@@ -195,7 +182,7 @@ public class CreatureBehaviour : MonoBehaviour
                         }
                     }
                     //if the closest sting target is a creature, go for it with probability [stingCreature]
-                    else if (targetHit.transform.tag == "Creature" || targetHit.transform.tag == "Grabbed")
+                    else if (targetHit.transform.CompareTag("Creature") || targetHit.transform.CompareTag("Grabbed"))
                     {
                         float rand = Random.value;
                         if (rand <= stingCreature)
@@ -207,7 +194,7 @@ public class CreatureBehaviour : MonoBehaviour
                 }   
             }
             //if I'm not now sting targeting, check for grab targets, and get the closest one
-            if (gameObject.tag != "StingTargeting")
+            if (!gameObject.CompareTag("StingTargeting"))
             {
                 if (GrabDirections.Any())
                 {
@@ -224,7 +211,7 @@ public class CreatureBehaviour : MonoBehaviour
                     {
                         RaycastHit targetHit = GetClosestHitPoint(GrabHits);
                         //if the closest grab target is food, go for it with probability [grabFood]
-                        if (targetHit.transform.tag == "Pick Up")
+                        if (targetHit.transform.CompareTag("Pick Up"))
                         {
                             float rand = Random.value;
                             if (rand <= grabFood)
@@ -235,7 +222,7 @@ public class CreatureBehaviour : MonoBehaviour
                             }
                         }
                         //if the closest grab target is a creature, go for it with probability [grabCreature]
-                        else if (targetHit.transform.tag == "Creature" || targetHit.transform.tag == "Grabbed")
+                        else if (targetHit.transform.CompareTag("Creature") || targetHit.transform.CompareTag("Grabbed"))
                         {
                             float rand = Random.value;
                             if (rand <= grabCreature)
@@ -249,7 +236,7 @@ public class CreatureBehaviour : MonoBehaviour
                 }
             }
             //If I'm not now grab targeting, continue with random motion
-            if (gameObject.tag != "GrabTargeting")
+            if (!gameObject.CompareTag("GrabTargeting"))
             {
                 float speed = Random.Range(minSpeed, maxSpeed); //set a random speed for this time step
                 Vector3 randomDirection = new Vector3(0, Mathf.Sin(timeVar) * (rotationRange / 2), 0); //set a random angle to turn
@@ -297,12 +284,16 @@ public class CreatureBehaviour : MonoBehaviour
         TargetDirections.Add(targetDirection); //add grabbing limb direction to my list of grabbing limbs
         GrabDirections.Remove(targetDirection); //remove this direction from my list of directions to raycast in
         ReleaseTimes.Add(Ticks + releaseRate); //add Ticks count for when to release 
-        //If another creature grabbed...
+        //If another creature is grabbed...
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
-            collision.gameObject.tag = "Grabbed"; //if the grabbee is not food, change its tag to 'Grabbed'
+            collision.gameObject.tag = "Grabbed"; //change its tag
+            //runSim.liveList.Remove(collision.gameObject); //remove it from liveList
+            //runSim.sterileList.Add(collision.gameObject); //add it to sterileList
             Rigidbody rBody_G = collision.gameObject.GetComponent<Rigidbody>(); 
             rBody_G.isKinematic = true; //turn grabbee's rbody into kinematic rbody
+            points += collision.gameObject.GetComponent<CreatureBehaviour>().points; //add its points to mine
+            collision.gameObject.GetComponent<CreatureBehaviour>().points = 0; //and set its points to zero as it's lost its chance to reproduce
         }
         collision.transform.SetParent(transform, true); //set it as my child
         collision.transform.position = transform.position; //position it at my origin
@@ -316,6 +307,8 @@ public class CreatureBehaviour : MonoBehaviour
         //things to do only to creatures
         if (!collision.gameObject.CompareTag("Pick Up"))
         {
+            //runSim.liveList.Remove(collision.gameObject); //remove it from liveList
+            //runSim.sterileList.Add(collision.gameObject); //add it to sterileList
             Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
             rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
             //tag all child objects inert
@@ -324,13 +317,17 @@ public class CreatureBehaviour : MonoBehaviour
                 child.gameObject.tag = "Inert";
                 child.gameObject.layer = 8;
             }
+            collision.gameObject.GetComponent<CreatureBehaviour>().points = 0; //set fitness value to zero as it's lost its chance to reproduce
+            collision.transform.parent = collision.transform.root; //detach collision object from immediate parents...reparent it to just the arena
+        }
+        else //things to do only to food
+        {
+            collision.transform.parent = null; //detach collision object from any parent
         }
         collision.gameObject.tag = "Inert"; //tag object itself as inert
         collision.gameObject.layer = 8; //add it to inert raycast layer
-        collision.transform.parent = null; //detach collision object from any parent
         //change colour of entire object
-        Renderer[] children;
-        children = collision.gameObject.GetComponentsInChildren<Renderer>();
+        Renderer[] children = collision.gameObject.GetComponentsInChildren<Renderer>();
         foreach (Renderer rend in children)
         {
             rend.material = stingerColour;

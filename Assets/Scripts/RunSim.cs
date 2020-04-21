@@ -11,6 +11,7 @@ public class RunSim : MonoBehaviour
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
     public Material foodColour;
+    public Material creatureColour;
     public Genome genome;
     public CreatureBehaviour creatureBehaviour;
     public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
@@ -35,15 +36,12 @@ public class RunSim : MonoBehaviour
     private float x0;
     private float z0;
     private float xzLim;
-    private GameObject[] arenaList; //array of arenas
+    private List<GameObject> arenaList = new List<GameObject>(); //create empty list of arenas
     private List<GameObject> foodPoolList = new List<GameObject>(); //create empty pooling list for food 
-    private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
-
-    // Public lists accessible by the CreatureBehaviour script attached to each creature??
-    public List<GameObject> liveCreatureList = new List<GameObject>(); //create empty list for live creatures 
-    public List<GameObject> inertCreatureList = new List<GameObject>(); //create empty list for inert creatures 
+    private List<GameObject> creatureList = new List<GameObject>(); //create empty list to keep track of all creatures
+    private List<GameObject> parentList0 = new List<GameObject>();  //create empty list to keep track of potential parents
+    private List<GameObject> parentList = new List<GameObject>(); //create empty list for actual parents
     
-
 
     // Start is called before the first frame update
     void Start()
@@ -53,7 +51,7 @@ public class RunSim : MonoBehaviour
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
-        WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabFood, GrabCreature, StingFood, StingCreature");
+        WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabFood, GrabCreature, StingFood, StingCreature, Points");
 
         //Spawn patches (arenas)
         x0 = 0f;
@@ -63,21 +61,21 @@ public class RunSim : MonoBehaviour
             Vector3 position = new Vector3(x0, 0, z0);
             GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
             arena.name = "Arena" + i.ToString();
+            arenaList.Add(arena); //add new arena to arenaList 
 
             //Spawn 1st gen creatures
             for (var j = 0; j < creatureNum; j++)
             {
                 GameObject newbaby = CreateCreature(x0, z0); //spawn creature
                 newbaby.transform.SetParent(arena.transform, true); //set current arena as its parent
-                liveCreatureList.Add(newbaby); //add creatures to live list 
-                WriteGenome(newbaby);
+                creatureList.Add(newbaby); //add to creatureList 
             }
 
-            //Spawn initial food and disable
+            //Spawn entire food pool and disable
             for (var k = 0; k < foodAmount; k++)
                 {
-                    GameObject newfood = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity); //spawn all food at zero location (will change this later)
-                    newfood.SetActive(false);
+                    GameObject newfood = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity); //spawn food at zero location (will change position when re-enabling)
+                    newfood.SetActive(false); //disable
                     foodPoolList.Add(newfood); //add it to the pooling list
                 }
 
@@ -93,7 +91,6 @@ public class RunSim : MonoBehaviour
             } 
         }
 
-        arenaList = GameObject.FindGameObjectsWithTag("Arena"); //fill the array of arenas
         Generation = 0;
         Ticks = 0;
     }
@@ -135,7 +132,7 @@ public class RunSim : MonoBehaviour
         //Start a new generation after number of ticks reaches resetRate
         if (Ticks > resetRate)
         {
-            Debug.Log(Time.time); //log reset time
+            //Debug.Log(Time.time); //log reset time
             if (Generation >= genNum - 1)
             {
                 UnityEditor.EditorApplication.isPlaying = false; //stop play mode when we reach max number of generations
@@ -171,68 +168,68 @@ public class RunSim : MonoBehaviour
             }
         }
 
-        //Global competition: 
-        //First go through live creature listDetach & disable all creatures, add non-inert creatures to parentList, then rank and clip the list
-        if (global == true)
+        //Go through all creatures. Write Data, disable and set aside the potential parents, and destroy the rest. Also clear the creatureList.
+        for (int c = creatureList.Count - 1; c >= 0; c--)
         {
-            foreach (GameObject creature in liveCreatureList)
+            GameObject creature = creatureList[c];
+            WriteGenome(creature); //write its data
+            //If creature is not grabbed or inert, add to parentlist0, otherwise destroy it
+            if (!creature.CompareTag("Grabbed") && !creature.CompareTag("Inert"))
             {
-                creature.transform.parent = null; //detach creature from all parents (arena and other creature if it was grabbed)
-                creature.SetActive(false); //disable creature
-                //if creature is non-inert (i.e. alive in patch)...
-                if (creature.CompareTag("Creature") || creature.CompareTag("Grabbed") || creature.CompareTag("GrabTargeting") || creature.CompareTag("StingTargeting"))
-                {
-                    parentList.Add(creature); //add to parentList
-                }
+                //creature.SetActive(false); //disable creature
+                parentList0.Add(creature); //Add to potential parents list
             }
-            Debug.Log("Original ParentsList: " + parentList.Count + " items");
-            //rank and clip the parentList
-            List<GameObject> parentList_ranked = parentList.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
-            parentList = parentList_ranked;
+            else
+            {
+                creature.transform.parent = null; //detach from parent arena 
+                Destroy(creature);
+            }
+            creatureList.RemoveAt(c);
+        }
+        
+        //Global competition: Rank and clip parentList0
+        if (global == true)
+        {  
+            parentList = parentList0.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
+            /*
             Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
             foreach (GameObject creature in parentList)
             {
                 Debug.Log(creature.GetComponent<CreatureBehaviour>().points);
             }
-
+            */
         } 
-        //Local competition: Go through each patch and choose the highest-scoring creature 
+
+        //Local competition: Go through each patch and choose the single highest-scoring creature 
         else
         { 
             foreach (GameObject arena in arenaList)
             {
-                List<GameObject> creatureList = new List<GameObject>(); //create empty list for non-inert creatures in patch
+                int maxPoints = 0;
+                GameObject highScorer = new GameObject();
+                //look through non-destroyed top-level children of the arena (i.e. all non-grabbed or stung creatures), check for highest scorer
                 foreach (Transform child in arena.transform)
                 {
-                    child.parent = null; //detach creature from all parents (arena and other creature if it was grabbed)
-                    child.gameObject.SetActive(false); //disable creature
-                    //if child has a non-inert tag...
-                    if (child.CompareTag("Creature") || child.CompareTag("Grabbed") || child.CompareTag("GrabTargeting") || child.CompareTag("StingTargeting"))
+                    if (child.gameObject.layer == 10) //check only children in creature layer (ignore walls, cameras, etc.)
                     {
-                        creatureList.Add(child.gameObject); //add to creatureList
-                    }
-                }
-                //Now go through creatureList and find highest scorer (choose randomly if tie)                
-                int rand = Random.Range(0, creatureList.Count);
-                GameObject highScorer = creatureList[rand];
-                int maxPoints = highScorer.GetComponent<CreatureBehaviour>().points;
-                foreach (GameObject creature in creatureList)
-                {
-                    int points = creature.GetComponent<CreatureBehaviour>().points; //get the creature's points count
-                    if (points > maxPoints)
-                    {
-                        highScorer = creature;
-                        maxPoints = points;
+                        int points = child.gameObject.GetComponent<CreatureBehaviour>().points; //get the creature's points count
+                        if (points > maxPoints)
+                        {
+                            highScorer = child.gameObject;
+                            maxPoints = points;
+                        }
+                        else if (maxPoints == 0) 
+                        {
+                            highScorer = child.gameObject; // this is to make sure there's a non-empty highscorer, even if no one scored above 0 in this patch
+                        }
                     }
                 }
                 parentList.Add(highScorer);
-                Debug.Log("High score: " + maxPoints); 
+                //Debug.Log("High score: " + maxPoints); 
             }
-            Debug.Log("ParentsList: " + parentList.Count + " items");
         }
 
         //Repopulate the patches for the next generation:
-        liveCreatureList.Clear(); //empty Creature list for next gen
         Generation += 1; //begin the next generation!
         x0 = 0f; //starting coordinates for patch 0
         z0 = 0f;
@@ -247,8 +244,7 @@ public class RunSim : MonoBehaviour
                 {
                     GameObject newbaby = CreateCreature(x0, z0, parent);
                     newbaby.transform.SetParent(arenaList[i].transform, true);
-                    liveCreatureList.Add(newbaby); //add to live creature list
-                    WriteGenome(newbaby);
+                    creatureList.Add(newbaby); //add to creature list
                 }
                 //advance to next patch location
                 if (i % 10 == 9)
@@ -295,8 +291,7 @@ public class RunSim : MonoBehaviour
                     newbaby.transform.position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim)); //change the position to be in the current patch
                     newbaby.transform.SetParent(arenaList[k].transform, true); //parent the creature to its arena
                     newbaby.SetActive(true); //re-activate the creature
-                    liveCreatureList.Add(newbaby); //add to live creature list
-                    WriteGenome(newbaby);
+                    creatureList.Add(newbaby); //add to creature list
                 }
                 n += creatureNum; //advance sliding window in newList
                 //advance to next patch location
@@ -311,8 +306,14 @@ public class RunSim : MonoBehaviour
                 }
             }
         }
-        parentList.Clear(); //empty the parentList for the next generation
-        Debug.Log("Empty List: " + parentList.Count + " items");
+
+        //Destroy the remaining previous gen creatures, and clear parentList0 & parentList
+        for (int p = parentList0.Count-1; p >= 0; p--)
+        {   
+            Destroy(parentList0[p]);
+            parentList0.RemoveAt(p);
+        }
+        parentList.Clear();
     }
 
     //Function to create a new creature, either with deafault/random gene values, or clone of a parent, with some chance of mutation
@@ -384,17 +385,18 @@ public class RunSim : MonoBehaviour
     //Function to write Genome data of a creature
     void WriteGenome(GameObject creature)
     {
-        string ArenaName = creature.transform.parent.name;
-        string grabFood = creature.GetComponent<Genome>().GrabFood.ToString();
-        string grabCreat = creature.GetComponent<Genome>().GrabCreature.ToString();
-        string stingFood = creature.GetComponent<Genome>().StingFood.ToString();
-        string stingCreat = creature.GetComponent<Genome>().StingCreature.ToString();
+        string ArenaName = creature.transform.root.name;
         int[] LegGenes = creature.GetComponent<Genome>().LegFunction;
         int[] SGList = CountSG(LegGenes);
         string grabberNum = SGList[0].ToString();
         string stingerNum = SGList[1].ToString();
+        string grabFood = creature.GetComponent<Genome>().GrabFood.ToString();
+        string grabCreat = creature.GetComponent<Genome>().GrabCreature.ToString();
+        string stingFood = creature.GetComponent<Genome>().StingFood.ToString();
+        string stingCreat = creature.GetComponent<Genome>().StingCreature.ToString();
+        string points = creature.GetComponent<CreatureBehaviour>().points.ToString();
         //write new creature's genome data to file
-        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabFood + "," + grabCreat + "," + stingFood + "," + stingCreat;
+        string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabFood + "," + grabCreat + "," + stingFood + "," + stingCreat + "," + points;
         WriteData(genomeData);
     }
 

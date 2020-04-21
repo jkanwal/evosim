@@ -156,11 +156,12 @@ MonoBehaviour:
   FoodPrefab: {fileID: 1362375701495828096, guid: 946afe776a197f7428d9ece02e901011,
     type: 3}
   foodColour: {fileID: 2100000, guid: 35e7132c063effc419ddc8ead561f1d9, type: 2}
+  creatureColour: {fileID: 0}
   genome: {fileID: 0}
   creatureBehaviour: {fileID: 0}
   writepath: Assets/Data/data.csv
-  global: 1
-  rHigh: 1
+  global: 0
+  rHigh: 0
   patchNum: 10
   creatureNum: 12
   foodAmount: 24
@@ -171,8 +172,6 @@ MonoBehaviour:
   arenaSize: 30
   minimumHeight: 2
   maximumHeight: 7
-  liveCreatureList: []
-  inertCreatureList: []
 --- !u!4 &727085161
 Transform:
   m_ObjectHideFlags: 0
