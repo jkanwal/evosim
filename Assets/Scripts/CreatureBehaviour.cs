@@ -41,6 +41,12 @@ public class CreatureBehaviour : MonoBehaviour
     //Keep track of Ticks
     private int Ticks;
 
+    public float moveseed;
+
+    public bool oscillate = false;
+    public float phase = 0;
+
+    
     void Start()
     {
         LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
@@ -59,9 +65,8 @@ public class CreatureBehaviour : MonoBehaviour
 
         //Get Rigid body component just once at Start, as this is an expensive operation
         rBody = GetComponent<Rigidbody>();
-
         Ticks = 0;
-
+        moveseed = Random.value;
     }
 
     void FixedUpdate()
@@ -96,22 +101,64 @@ public class CreatureBehaviour : MonoBehaviour
                 } 
             }
         }
-                /* (Commented out, so keeping hold of other creatures for now)
-                //if I'm grabbing a creature, release it
-                else
-                {
-                    grabbee.transform.parent = null;
-                    Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
-                    rBody.isKinematic = false;
-                    rBody.detectCollisions = true;
-                    grabbee.tag = "Creature";
-                }
-                gameObject.tag = "Creature"; //reset my Grabbing tag
-                grabbee = null; //empty my grabbee variable
-                */
+        /* (Commented out, so keeping hold of other creatures for now)
+        //if I'm grabbing a creature, release it
+        else
+        {
+            grabbee.transform.parent = null;
+            Rigidbody rBody = grabbee.GetComponent<Rigidbody>();
+            rBody.isKinematic = false;
+            rBody.detectCollisions = true;
+            grabbee.tag = "Creature";
+        }
+        gameObject.tag = "Creature"; //reset my Grabbing tag
+        grabbee = null; //empty my grabbee variable
+        */
 
-        MotionController(); //defines all the different conditions for different types of motion
+        //MotionController(); //defines all the different conditions for different types of motion --;
 
+
+        //rBody.transform.Rotate(new Vector3(Mathf.PerlinNoise(Time.time, 0.0f)*20 - 10f, Mathf.PerlinNoise(Time.time, 0.1f) - 0.5f, Mathf.PerlinNoise(Time.time, 02f) - 0.5f));
+
+        var xp = Mathf.PerlinNoise(Time.time/50+moveseed, 0.0f) * 180 - 90f;
+        var yp = Mathf.PerlinNoise(Time.time/50 + moveseed, 0.2f) * 180 - 90f;
+        var zp = Mathf.PerlinNoise(Time.time/50 + moveseed, 0.4f) * 180 - 90f;
+        rBody.transform.Rotate(new Vector3(xp, yp, zp) * Time.deltaTime);
+
+        rBody.velocity = transform.forward *(1f + moveseed*4f); // * Mathf.PerlinNoise(Time.time, 0.2f);
+
+        if (oscillate)
+        {
+            Oscillate();
+        }
+
+    }
+
+    public void BodyColour(Color bcolor)
+    {
+
+        GameObject body = transform.Find("Sphere").gameObject;
+        body.GetComponent<Renderer>().material = grabberColour;
+        body.GetComponent<Renderer>().material.SetColor("_Color", bcolor);
+    }
+
+    public void Oscillate()
+    {
+        //var rscale = Mathf.Abs(Mathf.Sin(Time.time/2+phase) * 3) ;
+        var rscale = Mathf.Sin(Time.time / 1 + phase) * 3;
+        rBody.transform.localScale = new Vector3(rscale + 0.5f, rscale + 0.5f, rscale + 0.5f);
+    }
+
+    
+
+    public void SetOscillate(bool oscillate)
+    {
+        this.oscillate = oscillate;
+    }
+
+    public void SetPhase(float phase)
+    {
+        this.phase = phase;
     }
 
 

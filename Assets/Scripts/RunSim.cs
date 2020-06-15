@@ -3,9 +3,17 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System.IO;
+using System;
+using ProceduralModeling;
+using Random = UnityEngine.Random;
+//using UnityEditor;
+//using UnityEditor.UIElements;
 
 public class RunSim : MonoBehaviour
 {
+
+    [SerializeField] GameObject treeprefab;
+    [SerializeField] GameObject speedtree1;
     //Inputs
     public GameObject ArenaPrefab;
     public GameObject CreaturePrefab;
@@ -18,11 +26,11 @@ public class RunSim : MonoBehaviour
     public bool global = true; //Global competetion between creatures? (if false, Local competiton)
     public bool rHigh = true; //High relatedness within a patch? (if false, Low relatedness)
     public int patchNum = 100; //number patches per generation
-    public int creatureNum = 12; //number creatures per patch
+    public int creatureNum = 100; //number creatures per patch
     public int foodAmount = 24; //starting amount of food per patch
     public float foodProb = 0.01f; //rate of spontaneous food production in patch
     public float mutationRate = 0.01f; //mutation rate
-    public int resetRate = 500; // number of ticks after which new generation begins
+    public int resetRate = 1200; // number of ticks after which new generation begins
     public int genNum = 10; //total number of generations after which simulation stops
     public float arenaSize = 30f; // length of side of square arena
     public float minimumHeight = 2f; //min height of object placement in patch
@@ -39,10 +47,21 @@ public class RunSim : MonoBehaviour
     //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
 
+    GameObject mainarena;
+    public GameObject trees1Prefab;
+    public GameObject trees2Prefab;
+    public GameObject trees3Prefab;
+    public GameObject sphere3Prefab;
+    public List<GameObject> netrenderers = new List<GameObject>();
+    public List<LineRenderer> snetrenderers = new List<LineRenderer>();
+    List<(int, int)> sconnections = new List<(int, int)>();
+    List<GameObject> sagents = new List<GameObject>();
 
     // Start is called before the first frame update
     void Start()
     {
+        
+        mainarena = Instantiate(ArenaPrefab, new Vector3(0, 0, 0), Quaternion.identity);
         //Application.targetFrameRate = 30;
 
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
@@ -50,10 +69,18 @@ public class RunSim : MonoBehaviour
         //write file header
         WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabberPref");
 
+        //speedtrees loader
+        trees1Prefab = Resources.Load("Broadleaf_Desktop") as GameObject;
+        trees2Prefab = Resources.Load("Conifer_Desktop") as GameObject;
+        trees3Prefab = Resources.Load("Palm_Desktop") as GameObject;
+        sphere3Prefab = Resources.Load("Org3") as GameObject;
+
+        GameObject[] trees = { trees1Prefab, trees2Prefab, trees3Prefab };
+
         //Spawn patches (arenas)
         x0 = 0f;
         z0 = 0f;
-        for (var i = 0; i < patchNum; i++)
+        for (var i = 1; i < patchNum; i++)
         {
             Vector3 position = new Vector3(x0, 0, z0);
             GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
@@ -61,31 +88,293 @@ public class RunSim : MonoBehaviour
 
 
             //Spawn initial creatures, each with only 1 grabber
-            for (var j = 0; j < creatureNum; j++)
+            for (var j = 0; j < creatureNum+i; j++)
             {
-                GameObject newbaby = CreateCreature(x0, z0);
+                GameObject newbaby = CreateCreature(((float)Math.Sin(j*0.5) * j*0.4f)+x0, (float)Math.Cos(j*0.5)*j*0.4f);
                 newbaby.transform.SetParent(arena.transform, true);
+                var size = Random.Range(1f, 3f)/i;
+                newbaby.transform.localScale = new Vector3(size, size, size);
                 WriteGenome(newbaby);
             }
-
-            //Spawn initial food in random locations
-            SpawnFood(x0, z0, foodAmount);
-
-            //advance to next patch location
-            if (i % 10 == 9)
-            {
-                z0 = -(xzLim * 3) * (i+1)/10;
-                x0 = 0f;
-            }
-            else
-            {
-                x0 += xzLim * 3;
-            } 
+            
+             x0 += xzLim * 3;
+                    
         }
+        //variable size creatures
+        for (var i = 0; i < patchNum; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "Arena1-" + i.ToString();
+
+            //Spawn initial creatures, each with only 1 grabber
+            for (var j = 0; j < creatureNum*3; j++)
+            {
+                GameObject newbaby = CreateCreature(((float)Math.Sin(j * 0.5) * j * 0.3f) + x0, (float)Math.Cos(j * 0.5) * j * 0.3f);
+                newbaby.transform.SetParent(arena.transform, true);
+                newbaby.GetComponent<CreatureBehaviour>().SetOscillate(true);
+                newbaby.GetComponent<CreatureBehaviour>().SetPhase(j*(i*0.05f));
+                newbaby.GetComponent<CreatureBehaviour>().BodyColour(Color.red);
+                
+                WriteGenome(newbaby);
+            }
+            x0 += xzLim * 3;            
+        }
+       
+        //trees
+        for (var i = 0; i < patchNum; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "Arena2-" + i.ToString();
+
+            //Spawn initial creatures, each with only 1 grabber
+            for (var j = 0; j < creatureNum; j++)
+            {
+                
+                createSpeedTree(((float)Math.Sin(j * 0.5) * j * 0.4f) + x0, 0.7f, (float)Math.Cos(j * 0.5) * j * 0.4f);
+            }
+            x0 += xzLim * 3;
+        }
+
+        //custom trees
+        for (var i = 0; i < patchNum; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "Arena2-" + i.ToString();
+
+            //Spawn trees
+            for (var j = 0; j < creatureNum; j++)
+            {
+                createTree(trees[Random.Range(0, 2)],x0 + Random.Range(0f, xzLim*1.5f) - xzLim / 2, 0.7f, z0+ Random.Range(0f, xzLim*1.5f) - xzLim / 2, 0.8f);
+            }
+            x0 += xzLim * 3;
+        }
+
+
 
         arenaList = GameObject.FindGameObjectsWithTag("Arena"); //fill the array of arenas
         Generation = 0;
         Ticks = 0;
+
+        for (var i = 0; i < 8; i++)
+        {
+            for (var j = 0; j < 8; j++)
+            {
+
+                createSpeedTree(Random.Range(1f, xzLim) -xzLim/2, 0.7f, Random.Range(1f, xzLim) - xzLim / 2);
+                
+            }
+        }
+
+
+        // network of agents
+        List<GameObject> agents = new List<GameObject>();
+        List<(int,int)> connections = new List<(int, int)>();
+        int counter = 0;
+        for (var i = 0; i < patchNum; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "ArenaN-" + i.ToString();
+
+            //spawn spheres
+            for (var j = 0; j < creatureNum * 3; j++)
+            {
+                
+                //node.GetComponent<CreatureBehaviour>().SetOscillate(true);
+                //node.GetComponent<CreatureBehaviour>().SetPhase(j * (i * 0.01f));
+                GameObject node = createTree(sphere3Prefab, x0+ Random.Range(0f, xzLim*1.5f)- xzLim/2, 5f+ Random.Range(0f, 10f), z0+ Random.Range(0f, xzLim*1.5f) - xzLim / 2, 1f);
+                
+                GameObject body = node.transform.Find("Sphere").gameObject;
+                body.transform.position = node.transform.position;
+                
+                agents.Add(node);
+                //if (Random.Range(0f, 1f) < 0.5)
+                //{
+                    int connectedAgent = (i * creatureNum * 3) + (j +Random.Range(1, creatureNum * 3))%(creatureNum * 3);                   
+                    connections.Add((counter, connectedAgent));
+                body.GetComponent<Renderer>().material.SetColor("_Color", Random.ColorHSV());
+                counter++;
+                
+                //}
+
+            }
+            x0 += xzLim * 3;
+        }
+        
+        //connections
+        foreach (var connection in connections)
+        {
+            //GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);            
+            //cylinder.transform.localScale = new Vector3(0.1f, 0.9f, 0.2f);
+            //cylinder.transform.SetParent(agents[connection.Item1].transform);
+            
+
+            GameObject myLine = new GameObject();
+            myLine.transform.position = agents[connection.Item1].transform.position;
+            myLine.AddComponent<LineRenderer>();
+            LineRenderer line = myLine.GetComponent<LineRenderer>();
+            line.material = agents[connection.Item1].GetComponent<MeshRenderer>().material;
+            line.material.SetColor("_Color", Random.ColorHSV());
+            line.GetComponent<Renderer>().material.SetColor("_EmissionColor", Random.ColorHSV());
+            line.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            line.SetColors(Color.white, Color.white);
+            line.SetWidth(0.1f, 0.1f);
+          
+            line.SetPosition(0, agents[connection.Item1].transform.position);
+            line.SetPosition(1, agents[connection.Item2].transform.position);
+        }
+
+        //
+        // networks of neurons ala' computer scientist
+        List<GameObject> neurons = new List<GameObject>();
+        List<(int, int)> axons = new List<(int, int)>();
+        int layers = 5;
+        int layerSize = 10;
+        int ncounter = 0;
+        for (var i = 0; i < 1; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "ArenaN-" + i.ToString();
+
+            //spawn spheres
+            for (var j = 0; j < layers; j++)
+            {
+
+                //node.GetComponent<CreatureBehaviour>().SetOscillate(true);
+                //node.GetComponent<CreatureBehaviour>().SetPhase(j * (i * 0.01f));
+                for (var k = 0; k < layerSize; k++)
+                {
+                    GameObject node = createTree(sphere3Prefab, x0 + j * 3f-5f, 10f , z0 + 2*k-5f, 0.5f);
+
+                    GameObject body = node.transform.Find("Sphere").gameObject;
+                    body.transform.position = node.transform.position;
+                    node.GetComponent<Rigidbody>().isKinematic = true;
+                    neurons.Add(node);
+
+                    if (j < layers - 1)
+                    {
+                        for (var n = 0; n < layerSize; n++)
+                        {
+                            int connectedAgent = (i * layers) + ((j + 1) * layerSize) + n;
+                            Debug.Log(ncounter + " - " + connectedAgent);
+
+                            axons.Add((ncounter, connectedAgent));
+                            
+
+                        }
+                    }
+                    body.GetComponent<Renderer>().material.SetColor("_Color", Color.red);
+                    ncounter++;
+                }
+                //}
+
+            }
+            x0 += xzLim * 3;
+        }
+        Debug.Log(neurons.Count);
+        //connections
+        foreach (var axon in axons)
+        {
+            //GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);            
+            //cylinder.transform.localScale = new Vector3(0.1f, 0.9f, 0.2f);
+            //cylinder.transform.SetParent(agents[connection.Item1].transform);
+
+            GameObject myLine = new GameObject();
+            myLine.transform.position = neurons[axon.Item1].transform.position;
+            myLine.AddComponent<LineRenderer>();
+            LineRenderer line = myLine.GetComponent<LineRenderer>();
+            line.material = neurons[axon.Item1].GetComponent<MeshRenderer>().material;
+            line.material.SetColor("_Color", Random.ColorHSV());
+            line.GetComponent<Renderer>().material.SetColor("_EmissionColor", new Color(Random.Range(0f, 1f), 0.7f, 0.7f, Random.Range(0f,1f)));
+            line.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            line.SetColors(Color.white, Color.white);
+            line.SetWidth(0.05f, 0.05f);
+
+            line.SetPosition(0, neurons[axon.Item1].transform.position);
+            line.SetPosition(1, neurons[axon.Item2].transform.position);
+        }
+
+        // springy network of agents
+
+
+        int scounter = 0;
+        for (var i = 0; i < patchNum; i++)
+        {
+            Vector3 position = new Vector3(x0, 0, z0);
+            GameObject arena = Instantiate(ArenaPrefab, position, Quaternion.identity);
+            arena.name = "ArenaN-" + i.ToString();
+
+            //spawn spheres
+            for (var j = 0; j < creatureNum * 3; j++)
+            {
+
+                //node.GetComponent<CreatureBehaviour>().SetOscillate(true);
+                //node.GetComponent<CreatureBehaviour>().SetPhase(j * (i * 0.01f));
+                GameObject node = createTree(sphere3Prefab, x0 + Random.Range(0f, xzLim * 1.2f) - xzLim / 2, Random.Range(3f, 6f), z0 + Random.Range(0f, xzLim * 1.2f) - xzLim / 2, 1f);
+                GameObject body = node.transform.Find("Sphere").gameObject;
+                body.transform.position = node.transform.position;
+                node.GetComponent<Rigidbody>().isKinematic = false;
+                node.GetComponent<Rigidbody>().velocity = new Vector3(Random.Range(0f,5f)-2.5f, Random.Range(0f, 5f) - 2.5f, Random.Range(0f, 5f) - 2.5f)*i*10;
+                //node.GetComponent<Rigidbody>().detectCollisions = true;
+                sagents.Add(node);
+                //if (Random.Range(0f, 1f) < 0.5)
+                //{
+                int connectedAgent = (i * creatureNum * 3) + (j + Random.Range(1, creatureNum * 3)) % (creatureNum * 3);
+                sconnections.Add((scounter, connectedAgent));
+                body.GetComponent<Renderer>().material.SetColor("_Color", Random.ColorHSV());
+                scounter++;
+
+                //}
+
+            }
+            x0 += xzLim * 3;
+        }
+        //Debug.Log("Agents" + agents.Count);
+        //Debug.Log("connections" + connections.Count);
+        //connections
+        foreach (var connection in sconnections)
+        {
+            //GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);            
+            //cylinder.transform.localScale = new Vector3(0.1f, 0.9f, 0.2f);
+            //cylinder.transform.SetParent(agents[connection.Item1].transform);
+            //Debug.Log("connection" + connection.Item1 + " - " + connection.Item2);
+            SpringJoint spring = sagents[connection.Item1].AddComponent<SpringJoint>();
+            //spring.autoConfigureConnectedAnchor = false;
+            spring.connectedBody = sagents[connection.Item2].GetComponent<Rigidbody>();
+            spring.minDistance = 0.5f;
+            spring.maxDistance = 1f;
+            spring.spring = 30f;
+            spring.damper = 0.05f;
+
+            GameObject myLine = new GameObject();
+            myLine.transform.position = sagents[connection.Item1].transform.position;
+            myLine.transform.SetParent(sagents[connection.Item1].transform);
+            myLine.AddComponent<LineRenderer>();
+            LineRenderer line = myLine.GetComponent<LineRenderer>();
+            line.material = sagents[connection.Item1].GetComponent<MeshRenderer>().material;
+            line.material.SetColor("_Color", Random.ColorHSV());
+            line.GetComponent<Renderer>().material.SetColor("_EmissionColor", Random.ColorHSV());
+            line.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            line.SetColors(Color.white, Color.white);
+            line.SetWidth(0.1f, 0.1f);
+
+            line.SetPosition(0, sagents[connection.Item1].transform.position);
+            line.SetPosition(1, sagents[connection.Item2].transform.position);
+
+            snetrenderers.Add(line);
+        }
+
+        // Colorful reaction (edges appearance)
+        // 2 colliding spheres -> k-cnets 
+        //
+
+
+
+
     }
 
     // Fixed Update is called at a set interval, and deals with the physics & tick advances
@@ -96,41 +385,82 @@ public class RunSim : MonoBehaviour
         //Start a new generation after number of ticks reaches resetRate
         if (Ticks > resetRate)
         {
-            Debug.Log(Time.time); //log reset time
+            //Debug.Log(Time.time); //log reset time --;
             if (Generation >= genNum - 1)
             {
-                UnityEditor.EditorApplication.isPlaying = false; //stop play mode when we reach max number of generations
+                //UnityEditor.EditorApplication.isPlaying = false; //stop play mode when we reach max number of generations
                 //Application.Quit(); Use the above instead when in testing mode
             }
             else
             {
-                NewGeneration(global, rHigh); //runs the new generation method
+                //    NewGeneration(global, rHigh); //runs the new generation method
                 Ticks = 0; //set Ticks back to 0 
             }
-        }  
-    }
-
-    // Update is called once per frame
-    /*
-    void Update()
-    {
-        
-        //Constantly add new food at some slow rate
-        float rand = Random.value;
-        if (rand < foodProb)
+        }
+        //lines updates
+        var lineCounter = 0;
+        foreach (var connection in sconnections)
         {
-            Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
-            Instantiate(FoodPrefab, position, Quaternion.identity);
+            snetrenderers[lineCounter].SetPosition(0, sagents[connection.Item1].transform.position);
+            snetrenderers[lineCounter].SetPosition(1, sagents[connection.Item2].transform.position);
+            lineCounter++;
         }
     }
-    */
+
+
+        // Update is called once per frame
+        /*
+        void Update()
+        {
+
+            //Constantly add new food at some slow rate
+            float rand = Random.value;
+            if (rand < foodProb)
+            {
+                Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
+                Instantiate(FoodPrefab, position, Quaternion.identity);
+            }
+        }
+        */
+
+        GameObject createTree(GameObject pref,float x, float y, float z,float size)
+    {
+        var go = Instantiate(pref) as GameObject;
+        go.transform.position = new Vector3(x, y, z);
+        //go.transform.localScale = new Vector3(Random.Range(0.3f, 1f), Random.Range(0.3f, 15f), Random.Range(1f, 15f));
+        go.transform.localScale = new Vector3(size, size, size);
+
+        go.transform.localRotation = Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.up);
+
+        //var tree = go.GetComponent<ProceduralTree>();
+        //tree.GetComponent<MeshRenderer>().material.SetColor("_Color", Random.ColorHSV());
+        //tree.Data.randomSeed = Random.Range(0, 300);
+        return go;
+    }
+
+    void createSpeedTree(float x, float y, float z)
+    {
+        var go = Instantiate(trees2Prefab) as GameObject;
+        go.transform.position = new Vector3(x, y, z);
+        //go.transform.localScale = new Vector3(Random.Range(0.3f, 1f), Random.Range(0.3f, 15f), Random.Range(1f, 15f));
+        go.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+
+        go.transform.localRotation = Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.up);
+
+        //var tree = go.GetComponent<ProceduralTree>();
+        //tree.GetComponent<MeshRenderer>().material.SetColor("_Color", Random.ColorHSV());
+        //tree.Data.randomSeed = Random.Range(0, 300);
+    }
+
 
     //Function to create the next generation:
     //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
     //Then repopulates the patches in one of 2 ways (High or Low relatedness)
-    void NewGeneration(bool global, bool rHigh)
+    void NewGenerationold(bool global, bool rHigh)
     {
         string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
+
+        
 
         //Global competition: Add all non-inert creatures to parentList, then rank and clip the list
         if (global == true)
@@ -148,11 +478,11 @@ public class RunSim : MonoBehaviour
                     parentList.Add(creature); //add to parentList
                 }
             }
-            Debug.Log("Original ParentsList: " + parentList.Count + " items");
+            //Debug.Log("Original ParentsList: " + parentList.Count + " items");
             //rank and clip the parentList
             List<GameObject> parentList_ranked = parentList.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
             parentList = parentList_ranked;
-            Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
+            //Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
             foreach (GameObject creature in parentList)
             {
                 Debug.Log(creature.GetComponent<CreatureBehaviour>().points);
@@ -196,6 +526,8 @@ public class RunSim : MonoBehaviour
             }
             Debug.Log("ParentsList: " + parentList.Count + " items");
         }
+
+        
 
         //Clear out old creatures & food
         DisableTag("OldGeneration"); //Disable previous non-inert creatures
@@ -285,10 +617,44 @@ public class RunSim : MonoBehaviour
         Debug.Log("Empty List: " + parentList.Count + " items");
     }
 
+    void NewGeneration(bool global, bool rHigh)
+    {
+        Generation += 1; //begin the next generation!
+        x0 = 0f; //starting coordinates for patch 0
+        z0 = 0f;
+        float radius = 0;
+        float inclination = 0;
+        float azimuth = 0;
+        GameObject root = CreateCreature(3, 3);
+        //List<GameObject> branches = new List<GameObject>();
+        //branches.Add(root);
+
+
+        for (var j = 0; j < creatureNum; j++)
+        {          
+            
+
+            radius = j * 2;
+            inclination += Random.Range(0.1f, 0.3f);
+            azimuth += Random.Range(0.1f, 0.3f);
+            float x = (float)(radius * Math.Sin(inclination) * Math.Cos(azimuth));
+            float y = (float)(radius * Math.Sin(inclination) * Math.Sin(azimuth));
+            float z = (float)(radius * Math.Cos(inclination));
+            GameObject newbaby = CreateCreature(x,y,z);
+            newbaby.transform.SetParent(mainarena.transform, true);
+
+            //branches.RemoveAt(0);
+
+            WriteGenome(newbaby);
+        }
+        parentList = new List<GameObject>();
+    }
+
     //Function to create a new creature, either with deafault/random gene values, or clone of a parent, with some chance of mutation
     GameObject CreateCreature(float x, float z, GameObject parent = null)
     {
-        Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim)); //set random position within patch
+        //Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim)); //set random position within patch
+        Vector3 position = new Vector3(x, 7, z);
         GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
         //if parent == null, do nothing (keep default gene values). Else...
         if (parent != null)
@@ -322,6 +688,58 @@ public class RunSim : MonoBehaviour
             }
             newbaby.GetComponent<Genome>().LegFunction = LegGenes;
         }
+        return newbaby;
+    }
+    GameObject CreateCreature(float x,float y, float z, GameObject parent = null)
+    {
+        //Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim)); //set random position within patch
+        Vector3 position = new Vector3(x, y, z);
+        GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
+        //if parent == null, do nothing (keep default gene values). Else...
+        if (parent != null)
+        {
+            //copy parent's grabber pref (with chance of mutation)
+            float rand = Random.value;
+            if (rand <= mutationRate)
+            {
+                newbaby.GetComponent<Genome>().GrabberPref = Random.value;
+                Debug.Log("Mutation!");
+            }
+            else
+            {
+                newbaby.GetComponent<Genome>().GrabberPref = parent.GetComponent<Genome>().GrabberPref;
+            }
+            //copy parent's leg functions (with chance of mutation at each leg)
+            int[] LegGenes = newbaby.GetComponent<Genome>().LegFunction;
+            int[] ParentLegGenes = parent.GetComponent<Genome>().LegFunction;
+            for (var i = 0; i < LegGenes.Length; i++)
+            {
+                float rand4 = Random.value;
+                if (rand4 <= mutationRate)
+                {
+                    LegGenes[i] = Random.Range(0, 3);
+                    Debug.Log("Mutation!");
+                }
+                else
+                {
+                    LegGenes[i] = ParentLegGenes[i];
+                }
+            }
+            newbaby.GetComponent<Genome>().LegFunction = LegGenes;
+        }
+        newbaby.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+        newbaby.transform.GetChild(0);
+        /*
+        GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        Rigidbody gameObjectsRigidBody = cylinder.AddComponent<Rigidbody>();
+        cylinder.transform.localScale = new Vector3 (0.1f,0.9f, 0.2f);
+        cylinder.transform.SetParent(newbaby.transform);
+        SpringJoint springJoint = cylinder.AddComponent<SpringJoint>();
+        */
+        //GameObject cylinder2 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        //cylinder.transform.localScale = new Vector3(0.1f, 0.9f, 0.2f);
+        //cylinder.transform.SetParent(cylinder.transform);
+
         return newbaby;
     }
 
