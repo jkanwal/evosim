@@ -6,6 +6,7 @@ using System.IO;
 
 public class RunSim : MonoBehaviour
 {
+
     //Inputs
     public GameObject ArenaPrefab;
     public GameObject CreaturePrefab;
@@ -38,6 +39,14 @@ public class RunSim : MonoBehaviour
     //private GameObject[] poolList; //pooling list for creatures 
     //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
+
+    // demo cam
+    public Camera dirCamera;
+    public int arenaFocus=0;
+    private GameObject leadAgent;
+    private GameObject grabAgent;
+    private bool followLead = false;
+    private bool followGrab = false;
 
 
     // Start is called before the first frame update
@@ -107,28 +116,86 @@ public class RunSim : MonoBehaviour
                 NewGeneration(global, rHigh); //runs the new generation method
                 Ticks = 0; //set Ticks back to 0 
             }
-        }  
-    }
+        }
 
-    // Update is called once per frame
-    /*
+       
+        
+
+
+    }
     void Update()
     {
-        
-        //Constantly add new food at some slow rate
-        float rand = Random.value;
-        if (rand < foodProb)
+        if (Input.GetKeyDown("1"))
         {
-            Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
-            Instantiate(FoodPrefab, position, Quaternion.identity);
-        }
-    }
-    */
+            //patchNum = 1;
+            followLead = false;
+            followGrab = false;
+            dirCamera.transform.position = arenaList[arenaFocus].transform.position + new Vector3(0f, 50f, 0);
+            arenaFocus++;
+            arenaFocus = arenaFocus % patchNum;
 
-    //Function to create the next generation:
-    //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
-    //Then repopulates the patches in one of 2 ways (High or Low relatedness)
-    void NewGeneration(bool global, bool rHigh)
+            Debug.Log("Focus arena +1");
+            //Start();
+        }
+        if (Input.GetKeyDown("2"))
+        {
+            //patchNum = 1;
+            followLead = false;
+            followGrab = false;
+            dirCamera.transform.position = new Vector3(30f*5, 100,-30f*(patchNum/10));
+            //Start();
+        }
+
+        if (Input.GetKeyDown("3"))
+        {
+            // camera.transform.position = leadAgent.transform.position;
+            //camera.transform.position = leadAgent.transform.position + new Vector3(0, 30, 0);
+            var agents = GameObject.FindGameObjectsWithTag("Creature");
+            agents.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
+            leadAgent = agents[0];
+            followLead = true;
+            followGrab = false;
+        }
+        if (followLead == true)
+        {
+            dirCamera.transform.position = leadAgent.transform.position + new Vector3(0, 20, 0);
+
+        }
+        if (Input.GetKeyDown("4"))
+        {
+            // camera.transform.position = leadAgent.transform.position;
+            //camera.transform.position = leadAgent.transform.position + new Vector3(0, 30, 0);
+            var agents = GameObject.FindGameObjectsWithTag("GrabTargeting");
+            agents.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
+            grabAgent = agents[0];
+            followGrab = true;
+        }
+        if (followGrab == true)
+        {
+            dirCamera.transform.position = grabAgent.transform.position + new Vector3(0, 20, 0);
+
+        }
+
+    }
+        // Update is called once per frame
+        /*
+        void Update()
+        {
+
+            //Constantly add new food at some slow rate
+            float rand = Random.value;
+            if (rand < foodProb)
+            {
+                Vector3 position = new Vector3(Random.Range(x0 - xzLim, x0 + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z0 - xzLim, z0 + xzLim));
+                Instantiate(FoodPrefab, position, Quaternion.identity);
+            }
+        }
+        */
+
+        //Function to create the next generation:
+        //Adds the surviving creatures to a reproducers list in one of 2 ways (Global or Local competition)
+        //Then repopulates the patches in one of 2 ways (High or Low relatedness)
+        void NewGeneration(bool global, bool rHigh)
     {
         string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
 
@@ -152,6 +219,7 @@ public class RunSim : MonoBehaviour
             //rank and clip the parentList
             List<GameObject> parentList_ranked = parentList.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
             parentList = parentList_ranked;
+            
             Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
             foreach (GameObject creature in parentList)
             {
