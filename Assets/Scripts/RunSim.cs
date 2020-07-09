@@ -142,7 +142,7 @@ public class RunSim : MonoBehaviour
             //patchNum = 1;
             followLead = false;
             followGrab = false;
-            dirCamera.transform.position = new Vector3(30f*5, 100,-30f*(patchNum/10));
+            dirCamera.transform.position = new Vector3(35f*5, 200+(12* patchNum / 10), -35f*(patchNum/20));
             //Start();
         }
 
@@ -169,6 +169,7 @@ public class RunSim : MonoBehaviour
             agents.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
             grabAgent = agents[0];
             followGrab = true;
+            followLead = false;
         }
         if (followGrab == true)
         {
