@@ -11,7 +11,7 @@ public class Genome : MonoBehaviour
     //Motion genes
     public float minSpeed = 10f;
     public float maxSpeed = 50f;
-    public float rotationRange = 120f;
+    public float rotationRange = 45f;
 
     //Behaviour genes
     public float GrabFood = 0.01f; //goes for food with the grabber this probability

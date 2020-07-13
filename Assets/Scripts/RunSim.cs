@@ -11,8 +11,6 @@ public class RunSim : MonoBehaviour
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
     public Material foodColour;
-    public Genome genome;
-    public CreatureBehaviour creatureBehaviour;
     public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
 
     //Simulation parameters (which can be altered before a run)
@@ -21,6 +19,7 @@ public class RunSim : MonoBehaviour
     public int patchNum = 10; //number patches per generation
     public int creatureNum = 12; //number creatures per patch
     public int foodAmount = 24; //starting amount of food per patch
+    public float enterFood = 0.25f; //proportion of generation length at which food appears
     public float foodProb = 0.01f; //rate of spontaneous food production in patch
     public float mutationRate = 0.01f; //mutation rate
     public int resetRate = 500; // number of ticks after which new generation begins
@@ -105,8 +104,8 @@ public class RunSim : MonoBehaviour
     //Update is used for everything else
     void Update()
     {
-        //Spawn food halfway through a generation
-        if (Ticks >= resetRate/2 && food == false) //Food comes in halfway through the generation
+        //Spawn food at the specified time (enterFood)
+        if (Ticks >= resetRate * enterFood && food == false) 
         {
             x0 = 0f;
             z0 = 0f;
@@ -196,12 +195,12 @@ public class RunSim : MonoBehaviour
         //Global competition: Rank and clip parentList0
         if (global == true)
         {  
-            parentList = parentList0.OrderByDescending(creature => creature.GetComponent<CreatureBehaviour>().points).Take(patchNum).ToList();
+            parentList = parentList0.OrderByDescending(creature => creature.GetComponent<Grab>().points).Take(patchNum).ToList();
             /*
             Debug.Log("Ranked and clipped List: " + parentList.Count + " items");
             foreach (GameObject creature in parentList)
             {
-                Debug.Log(creature.GetComponent<CreatureBehaviour>().points);
+                Debug.Log(creature.GetComponent<Grab>().points);
             }
             */
         } 
@@ -219,7 +218,7 @@ public class RunSim : MonoBehaviour
                 {
                     if (child.gameObject.layer == 9 && !child.CompareTag("Inert") && !child.CompareTag("Grabbed")) //check only children in target layer (ignore walls, cameras, etc.)
                     {
-                        int points = child.gameObject.GetComponent<CreatureBehaviour>().points; //get the creature's points count
+                        int points = child.gameObject.GetComponent<Grab>().points; //get the creature's points count
                         if (points > maxPoints)
                         {
                             highScorer = child.gameObject;
@@ -401,7 +400,7 @@ public class RunSim : MonoBehaviour
         string grabCreat = creature.GetComponent<Genome>().GrabCreature.ToString();
         string stingFood = creature.GetComponent<Genome>().StingFood.ToString();
         string stingCreat = creature.GetComponent<Genome>().StingCreature.ToString();
-        string points = creature.GetComponent<CreatureBehaviour>().points.ToString();
+        string points = creature.GetComponent<Grab>().points.ToString();
         //write new creature's genome data to file
         string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabFood + "," + grabCreat + "," + stingFood + "," + stingCreat + "," + points;
         WriteData(genomeData);
