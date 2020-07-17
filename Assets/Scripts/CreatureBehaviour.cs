@@ -41,6 +41,8 @@ public class CreatureBehaviour : MonoBehaviour
     //Keep track of Ticks
     private int Ticks;
 
+    private List<GameObject> connections = new List<GameObject>();
+
     void Start()
     {
         LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
@@ -59,7 +61,7 @@ public class CreatureBehaviour : MonoBehaviour
 
         //Get Rigid body component just once at Start, as this is an expensive operation
         rBody = GetComponent<Rigidbody>();
-
+        gameObject.tag = "Creature";
         Ticks = 0;
 
     }
@@ -114,6 +116,7 @@ public class CreatureBehaviour : MonoBehaviour
 
     }
 
+    
 
     //Function to assign leg colour & Stinger/Grabber directions based on genes
     void LegColourRaycast(int LegID, int[] LegGenes)
