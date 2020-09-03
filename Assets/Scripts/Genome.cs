@@ -8,6 +8,8 @@ public class Genome : MonoBehaviour
     //Limb function genes for Legs 1 through 6 (if 0, nothing; if 1, grabber; if 2, stinger)
     public int[] LegFunction = { 1, 1, 1, 1, 1, 1 };
 
+    public List<int> genomeSequence = new List<int>();
+
     //Motion genes
     public float minSpeed = 10f;
     public float maxSpeed = 50f;

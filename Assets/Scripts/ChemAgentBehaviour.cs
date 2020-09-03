@@ -35,10 +35,15 @@ public class ChemAgentBehaviour : MonoBehaviour
     {
         AgentPrefab = Resources.Load("Agent") as GameObject;
         rBody = GetComponent<Rigidbody>();
+        var testseq = new List<int>();
+        testseq.Add(0);
+        CodeSome(testseq);
+
     }
 
     void FixedUpdate()
     {
+        /*
         Ticks += 1; //count up a Tick at each physics update   
 
         var lineCounter = 0;
@@ -48,8 +53,48 @@ public class ChemAgentBehaviour : MonoBehaviour
             snetrenderers[lineCounter].SetPosition(1, connection.transform.position);
             
             lineCounter++;
-        }
+        }*/
 
+    }
+
+    void CodeSome(List<int> geneSequence)
+    {
+        // todo add costs
+        int index = 0;
+        int rules = 4; //update this number if more rules are added
+        while (index < geneSequence.Count)
+        {
+            var gene = geneSequence[index] % rules;
+            //Debug.Log("index-seq:" + index + " - " + geneSequence.Count);
+            switch (gene)
+            {
+                case 0:
+                    geneSequence.Add(Random.Range(0, rules));   //add a random gene to the chain
+                    break;
+                case 1:
+                    //connections.Add(environment.agents[Random.Range(0, environment.agents.Count)]); // connect to a random agent
+                    break;
+                case 2:
+                    Debug.Log("Case 2");
+                    break;
+                case 3:
+                    Debug.Log("Case 3");
+                    break;
+                default:
+
+                    //map
+                    //grow
+                    //appendix
+                    //clone
+                    //signal receiver
+                    //trade
+                    //connect to 1 end of list 
+                    //GP
+                    Debug.Log("Case not valid");
+                    break;
+            }
+            index++;
+        }
     }
 
     public void BodyColour(Color bcolor)

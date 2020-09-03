@@ -45,8 +45,9 @@ public class CreatureBehaviour : MonoBehaviour
 
     public bool oscillate = false;
     public float phase = 0;
+    private LittleChem environment;
+    private List<GameObject> connections = new List<GameObject>();
 
-    
     void Start()
     {
         LegDirections = new Vector3[] { transform.up, -transform.up, transform.right, -transform.right, transform.forward, -transform.forward };
@@ -134,6 +135,47 @@ public class CreatureBehaviour : MonoBehaviour
 
     }
 
+    void CodeSome(List<int> geneSequence)
+    {
+        // todo add costs
+        int index = 0;
+        int rules = 4; //update this number if more rules are added
+        while (index < geneSequence.Count)
+        {
+            var gene = geneSequence[index] % rules;
+            switch (gene)
+            {
+                case 0:
+                    geneSequence.Add(Random.Range(0, rules));   //add a random gene to the chain
+                    break;
+                case 1:
+                    connections.Add(environment.agents[Random.Range(0, environment.agents.Count)]); // connect to a random agent
+                    break;
+                case 2:
+                    Debug.Log("Case 2");
+                    break;
+                case 3:
+                    Debug.Log("Case 3");
+                    break;
+                default:
+
+                    //map
+                    //grow
+                    //appendix
+                    //clone
+                    //signal receiver
+                    //trade
+                    //connect to 1 end of list 
+                    //GP
+                    Debug.Log("Default");
+                    break;
+            }
+            index++;
+        }
+
+
+    }
+
     public void BodyColour(Color bcolor)
     {
 
@@ -149,7 +191,12 @@ public class CreatureBehaviour : MonoBehaviour
         rBody.transform.localScale = new Vector3(rscale + 0.5f, rscale + 0.5f, rscale + 0.5f);
     }
 
-    
+    public void SetEnvironment(LittleChem env)
+    {
+        this.environment = env;
+    }
+
+
 
     public void SetOscillate(bool oscillate)
     {

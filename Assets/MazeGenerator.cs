@@ -46,18 +46,7 @@ public class MazeGenerator : MonoBehaviour
         }
         
 
-        if (Input.GetKeyDown("1"))
-        {
-            var ThingList = GameObject.FindGameObjectsWithTag("Arena");
-            foreach (GameObject thing in ThingList)
-            {
-                Destroy(thing);
-            }
-            mazeSize = 1;
-            steps = 1;
-            camera.transform.position = new Vector3((mazeSize-1) * 35f / 2, mazeSize * 30f * 5, (mazeSize - 1) * 35f / 2);
-            initMaze();
-        }
+        
 
         if (Input.GetKeyDown("2"))
         {
@@ -82,7 +71,7 @@ public class MazeGenerator : MonoBehaviour
             mazeSize *= 2;
             if (mazeSize > 22)
             {
-                steps *= 4;
+                steps *= 3;
             }
             
             camera.transform.position = new Vector3((mazeSize - 1) * 35f / 2, (mazeSize - 1) * 35f * 1.2f+40f, (mazeSize - 1) * 35f / 2);
@@ -151,7 +140,8 @@ public class MazeGenerator : MonoBehaviour
             if (myList.Count > 0)
             {
                 //currentTile = myList[Random.Range(0,myList.Count - 1)];
-                currentTile = myList[myList.Count - 1];
+                currentTile = myList[Random.Range(0, (myList.Count - 1)) / 2];
+                //currentTile = myList[myList.Count - 1];
             }
             
         }
@@ -163,7 +153,7 @@ public class MazeGenerator : MonoBehaviour
 
             var val = Math.Abs(0.999999f - Math.Sin(stepper*0.02)) * neighbourhood[currentTile].Count;
 
-            var straight = 0;
+            //var straight = 0;
             stepper++;
             val = Random.Range(0, neighbourhood[currentTile].Count);
 
@@ -250,7 +240,7 @@ public class MazeGenerator : MonoBehaviour
         //starting tile
         tiles[0, 0].transform.Find("Ground").gameObject.GetComponent<Renderer>().material.SetColor("_Color", Color.red);
         myList = new List<(int, int)>();
-        myList.Add((0, 0));
+        myList.Add((mazeSize / 2, mazeSize / 2));
         currentTile = myList[0];
         discovered[0, 0] = true;
     }
