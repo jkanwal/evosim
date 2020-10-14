@@ -6,12 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 0
-    path: Assets/OpenArenas.unity
+    path: Assets/Scenes/OpenArenas.unity
     guid: 0de4581e3e0e4f24b80b74f8b9f460b2
   - enabled: 0
     path: Assets/Scenes/ChemScene.unity
     guid: f92b871e736daee46a43227c034d940e
   - enabled: 1
-    path: Assets/MazeGen.unity
+    path: Assets/Scenes/MazeGen.unity
     guid: a6168a52f0df97243a406bb74bde5d6b
   m_configObjects: {}

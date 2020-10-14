@@ -20,7 +20,7 @@ public class Mazer3 : MonoBehaviour
     private (int, int) currentTile;
     private float distributionFactor = 0f;
     private int stepper = 0;
-    private int steps = 10;
+    private int phase = 0;
     private bool park = false;
     //private PixelMaze textureMazer;
     private Texture2D texture;
@@ -32,8 +32,11 @@ public class Mazer3 : MonoBehaviour
     public AudioClip audioClip;
     private float speeder = 0;
     GameObject subMaze;
+    List<int> completedMazes = new List<int>();
 
-    private float noiseFactor = 0.40f;
+    private float noiseFactor = 0.41f;
+
+    private PixelMazeGen mainGen = new PixelMazeGen();
 
     // Start is called before the first frame update
     void Start()
@@ -43,7 +46,7 @@ public class Mazer3 : MonoBehaviour
         groundGen = new PixelMazeGen();
 
 
-        addFlatMaze(Vector3.zero);
+        mainGen = addFlatMaze(Vector3.zero);
 
         /*
         for (int i = 0; i < mazeSize *mazeSize*3; i++)
@@ -54,7 +57,7 @@ public class Mazer3 : MonoBehaviour
             spareTiles.Add(tile);
         }*/
         //camera.transform.position = new Vector3((mazeSize - 1) * 105f / 2, mazeSize * 30f * 5, (mazeSize - 1) * 105f / 2);
-        camera.transform.position = new Vector3(0, 22500, 0);
+        camera.transform.position = new Vector3(0, 3000, 0);
         var rotation = Quaternion.Euler(90, 180, 0);
         camera.transform.rotation = rotation;
         //initMaze();
@@ -94,21 +97,18 @@ public class Mazer3 : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        for (int x = 0; x < 1; x++)
-        {
-            //BuildMazeStep();
-        }
-       
-        if (stepper % 30 == 0)
-        {
-            steps++;
-        }
         stepper++;
+        if(stepper%90 == 0)
+        {
+            phase++;
+            
+        }
+        speeder += 0.11f;
         var rotation = Quaternion.Euler(0, .011f, 0);
         //camera.transform.rotation *= rotation;
 
         //speeder += 1.11f;
-        camera.transform.position += new Vector3(0, 0.11f+speeder, 0);
+        camera.transform.position += new Vector3(0, 40.00f+speeder, 0);
         //pixelGen.PartialMaze(1);
         //subMazeGen.PartialMaze(5);        
         
@@ -118,6 +118,7 @@ public class Mazer3 : MonoBehaviour
         float singleStep = 0.1f * Time.deltaTime;
         Vector3 newDirection = Vector3.RotateTowards(camera.transform.forward, targetDirection, singleStep, 0.0f);
         //camera.transform.rotation = Quaternion.LookRotation(newDirection);
+        completedMazes = new List<int>();
 
         foreach (var mazeG in mazeGens)
         {
@@ -128,15 +129,13 @@ public class Mazer3 : MonoBehaviour
             //}
             if (mazeG.mazeSurface.GetComponent<Renderer>().isVisible)
             {
-                mazeG.PartialMaze(1);
-                if (!mazeG.finished)
-                {
-                    mazeG.mazeSurface.transform.localScale *= 1.001f;
-                }
-                
+                mazeG.PartialMaze(1);                                
             }
 
-
+            if (mazeG.finished)
+            {
+                completedMazes.Add(mazeGens.IndexOf(mazeG));
+            }
 
             /*
             if (camera.transform.position.y - mazeG.mazeSurface.transform.position.y > 2000)
@@ -147,11 +146,24 @@ public class Mazer3 : MonoBehaviour
             }
             */
         }
-
-        if (Random.value < 0.04f)
+        if (completedMazes.Count > 0)
         {
-            addFlatMaze(new Vector3(Random.Range(-camera.transform.position.y, camera.transform.position.y), Random.Range(camera.transform.position.y/4, camera.transform.position.y/2), Random.Range(-camera.transform.position.y, camera.transform.position.y)));
+            foreach (var fmaze in completedMazes)
+            {
+                if (fmaze < mazeGens.Count)
+                {
+                    mazeGens.RemoveAt(fmaze);
+                }
+                
+                //Debug.Log(fmaze);
+            }
+        }
         
+
+        if (Random.value < 0.01f+(phase*0.01f))
+        {
+            PixelMazeGen m = addFlatMaze(new Vector3(Random.Range(-camera.transform.position.y*1.6f, camera.transform.position.y*1.6f), Random.Range(-camera.transform.position.y/2, camera.transform.position.y/8), Random.Range(-camera.transform.position.y*0.9f, camera.transform.position.y*0.9f)));
+            m.mazeSurface.transform.localScale *= phase*1f;
         }
         
 
@@ -346,13 +358,13 @@ public class Mazer3 : MonoBehaviour
     {
 
         var mazeGen = new PixelMazeGen();
-        mazeGen.initPixels(Random.Range(80, 120));
-        mazeGen.noiseField(noiseFactor);
+        mazeGen.initPixels(Random.Range(80-phase, 120));
+        mazeGen.noiseField(Random.Range(noiseFactor,0.51f));
 
         mazeGen.mazeSurface = Instantiate(arenaPrefab, location, Quaternion.Euler(new Vector3(90,0, 0)));
         //  for mazes always facing camera  
         //mazeGen.mazeSurface = Instantiate(arenaPrefab, new Vector3(Random.Range(0, 20000), Random.Range(0, 20000), Random.Range(0, 20000)), Quaternion.Euler(new Vector3(180, 0, 0)));
-        mazeGen.mazeSurface.transform.localScale *= 350.0f;
+        mazeGen.mazeSurface.transform.localScale *= 300.0f;
         mazeGen.mazeSurface.SetActive(true);
 
         mazeGen.mazeSurface.GetComponent<Renderer>().material.mainTexture = mazeGen.PartialMaze(1);
