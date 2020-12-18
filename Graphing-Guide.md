@@ -1,16 +1,16 @@
 # Data Visualisation Implementation Guide
 
 ## Added Code
-Assets -> Animation
+1. Assets -> Animation
     - Graph Menu Animation Controller
     - Graph Menu Opening Animation
-Assets -> Chart and Graph
+2. Assets -> Chart and Graph
     - Package Elements
-Assets -> Scripts
+3. Assets -> Scripts
     - GraphMenu.cs : Controls Graph Menu behaviour.
     - RunSim.cs : Added functions to aid graph control and update data points.
     - CreatureBehaviour.cs : Added singular lines to update some graphing variables in RunSim.cs.
-Assets -> Scenes
+4. Assets -> Scenes
     - Scene0.unity : Example implementation of the graph menu functionality
 
 
