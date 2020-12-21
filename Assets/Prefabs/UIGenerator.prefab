@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4792560051650440250
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4792560051650440260}
+  - component: {fileID: 4792560051650440251}
+  m_Layer: 0
+  m_Name: UIGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4792560051650440260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4792560051650440250}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6.795169, y: -23.445059, z: 5.172149}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4792560051650440251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4792560051650440250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c31049197a485b449b6e8d9ff181d8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  optionsTemplate: {fileID: 4578153238867131248, guid: d8426f08f88e3614e9aa04fef177d431,
+    type: 3}
+  simulation: {fileID: 0}
+  genome: {fileID: 0}
+  templateNames:
+  - System.String
+  - System.Int32
+  - System.Single
+  - System.Boolean
+  - System.Int32[]
+  templates:
+  - {fileID: 5296007027434038283, guid: 24b8c427c572ac34d8157451afe91ec3, type: 3}
+  - {fileID: 5296007027434038283, guid: 24b8c427c572ac34d8157451afe91ec3, type: 3}
+  - {fileID: 5296007027434038283, guid: 24b8c427c572ac34d8157451afe91ec3, type: 3}
+  - {fileID: 6950013163622801654, guid: eddbdcf30679457488b754e80806dfd7, type: 3}
+  - {fileID: 1043460977437918411, guid: 257b6b90d5a9d4c49b9190edb0e60cee, type: 3}
+  MenuCamera: {fileID: 0}
+  SimCamera: {fileID: 0}
