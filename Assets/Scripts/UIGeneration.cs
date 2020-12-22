@@ -220,7 +220,7 @@ public class UIGeneration : MonoBehaviour
     {
         variable.SetValue(script, float.Parse(inputField.text));
     }
-    public void createSim()
+    public void startSim()
     {
         simulation.gameObject.SetActive(true);
         try

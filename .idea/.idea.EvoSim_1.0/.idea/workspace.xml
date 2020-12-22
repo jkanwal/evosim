@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="93b77bf7-12f7-43b4-912f-ee64e5c16574" name="Default Changelist" comment="" />
+    <list default="true" id="93b77bf7-12f7-43b4-912f-ee64e5c16574" name="Default Changelist" comment="GUI added">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/contentModel.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/contentModel.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/indexLayout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/indexLayout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.EvoSim_1.0/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assembly-CSharp.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Assembly-CSharp.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Chart And Graph/Text Mesh Pro/2018 - TextMeshPro.unitypackage.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Chart And Graph/Text Mesh Pro/TextMeshPro.unitypackage.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Chart And Graph/TextEffects3D/integration.unitypackage.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Chart And Graph/Themes/3d/HDRP - Unity 2019.1.unitypackage.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Chart And Graph/Themes/3d/LWRP - Unity 2019.1.unitypackage.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Data/data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Data/data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Menu.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Menu.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/UIGenerator.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/UIGenerator.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/LegsSim.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/LegsSim.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/NewMenu.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/NewMenu.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/VirulenceSim.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/VirulenceSim.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/UIGeneration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/UIGeneration.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -16,8 +34,15 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/SimulationSelectorUnityUI.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/SimulationSelector.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/Downloads/evosim-PlusVirulence/evosim-PlusVirulence/Assets/Scripts/LifeCycle.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/SimulationSelectorUnityUI.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/SimulationSelector.cs" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <changedPaths>
+      <option value="$PROJECT_DIR$/Assets/Prefabs/UIGenerator.prefab" />
+      <option value="$PROJECT_DIR$/Assets/Scripts/UIGeneration.cs" />
+    </changedPaths>
   </component>
   <component name="ProjectId" id="1lyGsUviIgwD1PAQJcCtAqPBddZ" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -26,6 +51,7 @@
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="Discover.Launch.Via.Unity" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -59,15 +85,24 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1608562126346</updated>
-      <workItem from="1608562131051" duration="560000" />
+      <workItem from="1608562131051" duration="1703000" />
+      <workItem from="1608628199654" duration="1968000" />
     </task>
+    <task id="LOCAL-00001" summary="GUI added">
+      <created>1608563226659</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1608563226659</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
-  <component name="UnityProjectConfiguration" hasMinimizedUI="null" />
-  <component name="UnityUnitTestConfiguration" currentTestLauncher="NUnit" />
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="UnityUnitTestConfiguration" currentTestLauncher="EditMode" />
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
@@ -78,8 +113,11 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+    <MESSAGE value="GUI added" />
+    <option name="LAST_COMMIT_MESSAGE" value="GUI added" />
   </component>
 </project>
