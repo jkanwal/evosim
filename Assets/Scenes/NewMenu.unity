@@ -2135,11 +2135,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   simulationNames:
-  - Legs
-  - Virus
+  - Scene0
+  - Scene1
   scenes:
-  - LegsSim
-  - VirulenceSim
+  - Scene0
+  - Scene1
   template: {fileID: 1406682820171085249, guid: e0cbafbb1ad83864abafae17e6607961,
     type: 3}
   view: {fileID: 244021780}

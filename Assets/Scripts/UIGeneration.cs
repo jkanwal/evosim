@@ -13,6 +13,7 @@ public class UIGeneration : MonoBehaviour
     public GameObject optionsTemplate;
     private GameObject options;
     public GameObject simulation;
+    public GameObject graphToggle;
     public GameObject genome;
     //[FormerlySerializedAs("view")] public GameObject SimView;
     //public GameObject genomView;
@@ -84,11 +85,12 @@ public class UIGeneration : MonoBehaviour
         }
         //script = genome.GetComponent<Genome>();
         removeUI(genomView);
-        foreach (FieldInfo variable in typeof(Genome).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public))
-        {
-            generateUIElement(variable,genomView,genome.GetComponent<Genome>());
+        if(genome != null) {
+            foreach (FieldInfo variable in typeof(Genome).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public))
+            {
+                generateUIElement(variable,genomView,genome.GetComponent<Genome>());
+            }
         }
-        
     }
 
     public void removeUI(GameObject view)
@@ -223,6 +225,7 @@ public class UIGeneration : MonoBehaviour
     public void startSim()
     {
         simulation.gameObject.SetActive(true);
+        graphToggle.gameObject.SetActive(true);
         try
         {
             MenuCamera.gameObject.SetActive(false);

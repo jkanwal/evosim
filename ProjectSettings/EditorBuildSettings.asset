@@ -14,4 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LegsSim.unity
     guid: 82ca405a2528c6646af381e54a757a5a
+  - enabled: 1
+    path: Assets/Scenes/Scene0.unity
+    guid: f24904c6fe2b5b743ab1067a8e0bc333
+  - enabled: 1
+    path: Assets/Scenes/Scene1.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
   m_configObjects: {}

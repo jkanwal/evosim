@@ -51,6 +51,7 @@ public class RunSim : MonoBehaviour
     //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
     private int lastPoll; // last point added to graph (for conditional point addition)
+    private double startTime;
     private bool showHist = true; // boolean toggle to show history
     private bool rolling = false; // boolean toggle for rolling graph
 
@@ -76,7 +77,7 @@ public class RunSim : MonoBehaviour
     {
         //Application.targetFrameRate = 30;
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
-
+        startTime = Time.time;
         //write file header
         WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabberPref");
 
@@ -588,7 +589,7 @@ public class RunSim : MonoBehaviour
             }
 
             // add point to current generation graph, and update timer
-            chart.DataSource.AddPointToCategoryRealtime("Gen" + Generation, Time.time - (Generation * (resetRate / 50)), currentCount, 0.5f);
+            chart.DataSource.AddPointToCategoryRealtime("Gen" + Generation, (Time.time - startTime) - (Generation * (resetRate / 50)), currentCount, 0.5f);
             lastPoll = currentCount;
         }
 
