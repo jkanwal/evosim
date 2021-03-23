@@ -256,6 +256,7 @@ public class CreatureBehaviour : MonoBehaviour
     //Function that defines grabbing behaviour
     void Grab(Collision collision)
     {
+        GameObject.Find("RunSim").GetComponent<RunSim>().grabs++; // update counter in RunSim (for graphing)
         Grabbees.Add(collision.gameObject); //add grabbee to my grabbees list
         TargetDirections.Add(targetDirection); //add grabbing limb direction to my list of grabbing limbs
         GrabDirections.Remove(targetDirection); //remove this direction from my list of directions to raycast in
@@ -275,14 +276,20 @@ public class CreatureBehaviour : MonoBehaviour
     //Function that defines stinging behaviour
     void Sting(Collision collision)
     {
+        GameObject.Find("RunSim").GetComponent<RunSim>().stings++; // update counter in RunSim (for graphing)
         //things to do only to creatures
         if (collision.gameObject.tag != "Pick Up")
         {
+            GameObject.Find("RunSim").GetComponent<RunSim>().currentCount--;
             Rigidbody rBody_S = collision.gameObject.GetComponent<Rigidbody>();
             rBody_S.isKinematic = true; //turn the dead creature into kinematic rbody
             //tag all child objects inert
             foreach (Transform child in collision.transform)
             {
+                if(child.gameObject.tag == "Creature") {
+                    // reduce creature counter in RunSim (due to creature death)
+                    GameObject.Find("RunSim").GetComponent<RunSim>().currentCount--;
+                }
                 child.gameObject.tag = "Inert";
                 child.gameObject.layer = 8;
             }

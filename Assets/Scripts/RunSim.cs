@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System.IO;
+using ChartAndGraph;
 
 public class RunSim : MonoBehaviour
 {
@@ -11,6 +12,13 @@ public class RunSim : MonoBehaviour
     public GameObject ArenaPrefab;
     public GameObject CreaturePrefab;
     public GameObject FoodPrefab;
+    public GraphChart chart; // current generation creature count graph
+    public GraphChart genChart; // overall generation creature count graph
+    public GraphChart genChart2; // overall generation sting and grab events graph
+    public PieChart pieChart; // current generation stringer/grabber proportion pie chart
+    public BarChart barChart; // current generation sting and grab event
+    public GameObject rollToggle; // rolling graph toggle
+    public GameObject histToggle; // historical data toggle
     public Genome genome;
     public CreatureBehaviour creatureBehaviour;
     public string writepath = "Assets/Data/data.csv"; //write simulation data to this filename
@@ -28,6 +36,9 @@ public class RunSim : MonoBehaviour
     public float arenaSize = 30f; // length of side of square arena
     public float minimumHeight = 2f; //min height of object placement in patch
     public float maximumHeight = 7f; //max height of object placement in patch
+    public int currentCount = 0; // current number of organisms in generation
+    public int stings; // current number of sting events in generation
+    public int grabs; // current number of grab event in generation
  
     //Other global variables
     private int Ticks;
@@ -39,6 +50,9 @@ public class RunSim : MonoBehaviour
     //private GameObject[] poolList; //pooling list for creatures 
     //private GameObject[] foodList; //pooling list for food objects 
     private List<GameObject> parentList = new List<GameObject>(); //create empty list of reproducers
+    private int lastPoll; // last point added to graph (for conditional point addition)
+    private bool showHist = true; // boolean toggle to show history
+    private bool rolling = false; // boolean toggle for rolling graph
 
     // demo cam
     public Camera dirCamera;
@@ -49,16 +63,25 @@ public class RunSim : MonoBehaviour
     private bool followGrab = false;
     private int following = 0;
 
+    // Graphing defaults
+    public Material lineMaterial, fillMaterial,pointMaterial;
+    public Material oldLineMaterial, oldFillMaterial, oldPointMaterial;
+    private bool stretchFill = false;
+    private double pointSize = 10.0;
+    private double lineThickness = 4.0;
+
 
     // Start is called before the first frame update
     void Start()
     {
         //Application.targetFrameRate = 30;
-
         xzLim = (arenaSize / 2) - 2; //max distance from centre of arena at which objects can be placed
 
         //write file header
         WriteData("Gen, Patch, NumGrabbers, NumStingers, GrabberPref");
+
+        // Initial chart setup
+        SetInitialViews();
 
         //Spawn patches (arenas)
         x0 = 0f;
@@ -96,6 +119,7 @@ public class RunSim : MonoBehaviour
         arenaList = GameObject.FindGameObjectsWithTag("Arena"); //fill the array of arenas
         Generation = 0;
         Ticks = 0;
+        lastPoll = currentCount; // initialise previous creature counter
     }
 
     // Fixed Update is called at a set interval, and deals with the physics & tick advances
@@ -114,18 +138,15 @@ public class RunSim : MonoBehaviour
             }
             else
             {
+                updateOverallGraphs(); // record generation data on graphs
                 NewGeneration(global, rHigh); //runs the new generation method
                 Ticks = 0; //set Ticks back to 0 
             }
         }
-
-       
-        
-
-
     }
     void Update()
     {
+        updateCurrentGraph(); // update current generation creature count graph
         if (Input.GetKeyDown("1"))
         {
             //patchNum = 1;
@@ -250,6 +271,11 @@ public class RunSim : MonoBehaviour
     {
         string[] creatureTags = {"Grabbed", "Creature", "GrabTargeting", "StingTargeting"}; //tags associated with non-inert creatures
 
+        // reset current generation counters.
+        currentCount = 0;
+        stings = 0;
+        grabs = 0;
+
         //Global competition: Add all non-inert creatures to parentList, then rank and clip the list
         if (global == true)
         {
@@ -323,6 +349,11 @@ public class RunSim : MonoBehaviour
 
         //Repopulate the patches for the next generation:
         Generation += 1; //begin the next generation!
+
+        // create new category for new generation
+        var lineTiling = new MaterialTiling(true,20);
+        chart.DataSource.AddCategory("Gen" + Generation, lineMaterial,lineThickness,lineTiling,fillMaterial,stretchFill,pointMaterial,pointSize);
+        
         x0 = 0f; //starting coordinates for patch 0
         z0 = 0f;
         //If High relatedness: populate each new patch by going through parentList and cloning each member creatureNum times
@@ -404,11 +435,12 @@ public class RunSim : MonoBehaviour
         Debug.Log("Empty List: " + parentList.Count + " items");
     }
 
-    //Function to create a new creature, either with deafault/random gene values, or clone of a parent, with some chance of mutation
+    //Function to create a new creature, either with default/random gene values, or clone of a parent, with some chance of mutation
     GameObject CreateCreature(float x, float z, GameObject parent = null)
     {
         Vector3 position = new Vector3(Random.Range(x - xzLim, x + xzLim), Random.Range(minimumHeight, maximumHeight), Random.Range(z - xzLim, z + xzLim)); //set random position within patch
         GameObject newbaby = Instantiate(CreaturePrefab, position, Quaternion.identity);
+        currentCount++; // update counter of organisms
         //if parent == null, do nothing (keep default gene values). Else...
         if (parent != null)
         {
@@ -455,6 +487,10 @@ public class RunSim : MonoBehaviour
         string stingerNum = SGList[1].ToString();
         //write new creature's genome data to file
         string genomeData = Generation.ToString() + "," + ArenaName + "," + grabberNum + "," + stingerNum + "," + grabPref;
+
+        // setup pie chart
+        pieChart.DataSource.SetValue("Stingers", SGList[0] + pieChart.DataSource.GetValue("Stingers"));
+        pieChart.DataSource.SetValue("Grabbers", SGList[1] + pieChart.DataSource.GetValue("Grabbers"));
         WriteData(genomeData);
     }
 
@@ -516,6 +552,116 @@ public class RunSim : MonoBehaviour
         return GSList;
     }
 
+    // Function to setup initial graph scales and views.
+    void SetInitialViews() {
+        chart.DataSource.Clear();
+
+        chart.DataSource.HorizontalViewSize = resetRate / 50;
+        chart.DataSource.HorizontalViewOrigin = 0;
+        chart.DataSource.VerticalViewSize = (0.15 * (patchNum * creatureNum)) + 1;
+        chart.DataSource.VerticalViewOrigin = 0.85 * (patchNum * creatureNum);
+
+        genChart.DataSource.HorizontalViewSize = Mathf.Round(Mathf.Log10(genNum));
+        genChart.DataSource.HorizontalViewOrigin = 0;
+        genChart.DataSource.VerticalViewSize = (0.15 * (patchNum * creatureNum));
+        genChart.DataSource.VerticalViewOrigin = 0.85 * (patchNum * creatureNum);
+
+        genChart2.DataSource.HorizontalViewSize = Mathf.Round(Mathf.Log10(genNum));
+        genChart2.DataSource.HorizontalViewOrigin = 0;
+        genChart2.DataSource.VerticalViewOrigin = 0;    
+        genChart2.DataSource.VerticalViewSize = 500;
+
+        var lineTiling = new MaterialTiling(true,20);
+        chart.DataSource.AddCategory("Gen0", lineMaterial,lineThickness,lineTiling,fillMaterial,stretchFill,pointMaterial,pointSize);
+    }
+    
+    // Helper function to add a point to the current generation creature count graph
+    void updateCurrentGraph() {
+        // conditions to add new point to current generation graph
+        // will add a point to the graph if the creature count decreases (death), or after a timer expires.
+        if(lastPoll > currentCount || Ticks % (0.1 * resetRate) == 0) {
+            // check scale to ensure adequacy
+            if(currentCount >= (chart.DataSource.VerticalViewOrigin + chart.DataSource.VerticalViewSize)) {
+                chart.DataSource.VerticalViewSize += 50;
+            } else if(currentCount <= chart.DataSource.VerticalViewOrigin) {
+                chart.DataSource.VerticalViewOrigin -= 50;
+            }
+
+            // add point to current generation graph, and update timer
+            chart.DataSource.AddPointToCategoryRealtime("Gen" + Generation, Time.time - (Generation * (resetRate / 50)), currentCount, 0.5f);
+            lastPoll = currentCount;
+        }
+
+        // update bar chart values of sting and grab events (only if necessary)
+        if(barChart.isActiveAndEnabled) {
+            barChart.DataSource.SetValue("Stings", "All", stings);
+            barChart.DataSource.SetValue("Grabs", "All", grabs);
+        }
+    }
+
+    // Helper function to add points to the overall generation graphs.
+    void updateOverallGraphs() {
+        double log = Mathf.Round(Mathf.Log10(Generation + 1) * 100) / 100;
+                
+        // ensure scale view is appropiate
+        alterScale(genChart, currentCount);
+        alterScale(genChart2, stings);
+        alterScale(genChart2, grabs);
+
+        // add data points to graphs
+        genChart.DataSource.AddPointToCategory("GenTotal", log, currentCount, 1f);
+        genChart2.DataSource.AddPointToCategory("GenStings", log, stings, 1f);
+        genChart2.DataSource.AddPointToCategory("GenGrabs", log, grabs, 1f);
+        
+        // edit old lines so they're aren't as visible.
+        var lineTiling = new MaterialTiling(true, 20);
+        SetLineFade(lineTiling, Generation);
+    }
+ 
+    // Update line material for a generation
+    void SetLineFade(MaterialTiling lineTiling, int Generation) {
+        for(int i = 1; i < Generation + 2; i++) {
+            double percentage = i / (Generation + 1);
+            chart.DataSource.SetCategoryLine("Gen" + (i - 1), oldLineMaterial, lineThickness * percentage, lineTiling);
+            chart.DataSource.SetCategoryFill("Gen" + (i - 1), oldFillMaterial, stretchFill);
+            chart.DataSource.SetCategoryPoint("Gen" + (i - 1), oldPointMaterial, (pointSize * percentage));
+            chart.DataSource.SetCategoryEnabled("Gen" + (i - 1), showHist);
+        }
+    }
+
+    // Helper function to toggle rolling graph
+    public void toggleRolling() {
+        rolling = !rolling;
+        chart.AutoScrollHorizontally = rolling;
+        chart.DataSource.AutomaticHorizontalView = rolling;
+
+        if(!rolling) {
+            chart.DataSource.HorizontalViewSize = resetRate / 50;
+            chart.DataSource.HorizontalViewOrigin = 0;
+        }        
+    }
+
+    // Helper function to toggle historical graphing overlay
+    public void toggleHistory() {
+        showHist = !showHist;
+        for(int i = 0; i < Generation; i++) {
+            chart.DataSource.SetCategoryEnabled("Gen" + i, showHist);
+        }
+    }
+
+    // Helper function to toggle a graph's visibility (i.e. Panel object)
+    public void toggleGraph(GameObject panel) {
+        panel.SetActive(!panel.activeInHierarchy);
+    }
+
+    // helper function to adjust scales for visibility
+    void alterScale(GraphChart graph, int current) {
+        if(current >= (graph.DataSource.VerticalViewOrigin + graph.DataSource.VerticalViewSize)) {
+            graph.DataSource.VerticalViewSize += 50;
+        } else if(current <= graph.DataSource.VerticalViewOrigin) {
+            graph.DataSource.VerticalViewOrigin -= 50;
+        }
+    }
 }
 
 

@@ -3,7 +3,16 @@ guid: 098c23372372f134394cfdcee5a40c0e
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - ArenaPrefab: {fileID: 1809385878306017445, guid: 2da58e3e79209d44e8221e3d6b44e998,
+      type: 3}
+  - CreaturePrefab: {fileID: 703432654380065365, guid: dddb77a2329e13b4891ca7d3b3f44ac9,
+      type: 3}
+  - FoodPrefab: {fileID: 1362375701495828096, guid: 946afe776a197f7428d9ece02e901011,
+      type: 3}
+  - genome: {instanceID: 0}
+  - creatureBehaviour: {instanceID: 0}
+  - dirCamera: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
